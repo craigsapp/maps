@@ -1,0 +1,45 @@
+# Site settings
+title: Online Mapping Info
+description: Examples and concepts for online mapping
+author: Craig Stuart Sapp
+#email:
+baseurl: "/"
+url: "https://map-info.sapp.org"
+
+# Use the remote theme from GitHub Pages' theme repository
+remote_theme: pages-themes/minimal
+# remote_theme: pages-themes/cayman
+# remote_theme: pages-themes/dinky
+# remote_theme: pages-themes/hacker
+# remote_theme: pages-themes/leap-day
+# remote_theme: pages-themes/midnight
+# remote_theme: pages-themes/modernist
+# remote_theme: pages-themes/slate
+# remote_theme: pages-themes/tactile
+# remote_theme: pages-themes/time-machine
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+
+# Exclude from processing
+exclude:
+  - README.md
+
+# Default layout for pages (not home)
+defaults:
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: page
+
+# Set a custom layout for the homepage
+defaults:
+  - scope:
+      path: ""
+      type: homepage
+    values:
+      layout: home
+
+
