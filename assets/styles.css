@@ -1,0 +1,15 @@
+/* Increase the width of the content area */
+.page {
+  max-width: 1000px;  /* Set your desired width */
+  margin: 0 auto;     /* Center the content */
+}
+
+/* Optionally adjust the header/footer width if needed */
+.site-header, .site-footer {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+body {
+	background: red;
+}

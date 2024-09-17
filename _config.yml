@@ -8,6 +8,7 @@ url: "https://map-info.sapp.org"
 
 # Use the remote theme from GitHub Pages' theme repository
 remote_theme: pages-themes/minimal
+# remote_theme: pages-themes/minimal@v0.2.0  # You can specify a version or omit it
 # remote_theme: pages-themes/cayman
 # remote_theme: pages-themes/dinky
 # remote_theme: pages-themes/hacker
@@ -17,6 +18,9 @@ remote_theme: pages-themes/minimal
 # remote_theme: pages-themes/slate
 # remote_theme: pages-themes/tactile
 # remote_theme: pages-themes/time-machine
+
+plugins:
+  - jekyll-remote-theme # Make sure this plugin is enabled
 
 # Markdown settings
 markdown: kramdown
@@ -42,4 +46,4 @@ defaults:
     values:
       layout: home
 
-
+custom_css: /assets/styles.css
