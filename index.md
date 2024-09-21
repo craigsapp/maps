@@ -2,6 +2,9 @@
 permalink:
 ---
 
+# Concepts
+
+* [Favorites](/favorites) &mdash; Example usage of Leaflet to create an interface for favorite locations.
 
 # Concepts
 

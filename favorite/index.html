@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>My Favorite Places</title>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body class="wait">
+
+<style>
+
+body {
+	display: flex;
+	margin: 0;
+	padding: 0;
+	font-family: sans-serif;
+	height: 100vh;
+}
+
+.wait {
+	cursor: wait;
+}
+
+*:focus {
+	/* no blue outlines for focused elements */
+	outline: none;
+	box-shadow: none;
+}
+
+.bullet {
+	margin: 0;
+	margin-right: -6px;
+	padding: 0;
+	display: inline-block;
+	font-size: 300%;
+	line-height: 0; /* Prevent changing the line height */
+	vertical-align: middle; /* Align the bullet with the text */
+}
+
+#map {
+	height: 100vh;
+	flex-grow: 1;
+	margin-left: 0;
+}
+
+#filter-container {
+	width: 325px;
+	min-height: 150px;
+	padding: 20px;
+	box-sizing: border-box;
+	background-color: #f4f4f4;
+	font-family: sans-serif;
+	margin: 0;
+	overflow-y: auto;
+}
+
+#filter-container h2 {
+	font-size: 1.5em;
+	font-weight: bold;
+	margin-bottom: 10px;
+	font-family: sans-serif;
+}
+
+.type-filter {
+	/* Older single-column styling:
+	display: flex;
+	flex-direction: column;
+	*/
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	column-gap: 8px;
+}
+
+.type-filter label {
+	margin-bottom: 5px;
+}
+
+#shortcuts-popup {
+	z-index: 999;
+	max-width: 200px;
+	white-space: nowrap;
+}
+
+#coordinates {
+	position: fixed;
+	bottom: 20px;
+	left: 20px;
+	background-color: transparent;
+	padding: 5px;
+	font-size: 12px;
+	font-family: sans-serif;
+	z-index: 100;
+}
+
+span.key {
+	font-weight: bold;
+}
+
+span.key-info {
+	color: #aaa;
+}
+
+.button-container {
+	display: flex;
+	justify-content: space-between;
+}
+
+.button {
+	padding: 6px;
+	display: inline-block;
+	margin-top: 12px;
+	text-align: center;
+	background-color: #333;
+	color: white;
+	border-radius: 5px;
+	cursor: pointer;
+	user-select: none;
+	flex: 1;
+	margin-right: 10px;
+}
+
+.button:last-child {
+	margin-right: 0;
+}
+
+.button:hover {
+	background-color: #555;
+}
+
+li#keyboard-shortcuts {
+	cursor: pointer;
+	color: blue;
+}
+
+#shortcuts-popup ul {
+	color: black;
+	list-style-type: none;
+	padding-left: 0;
+	margin-left: 0;
+}
+
+#shortcuts-popup li {
+	margin-left: 20px;      /* Optional: Adjust the left margin to position the disc */
+}
+
+
+a {
+	text-decoration: none;
+}
+
+
+</style>
+
+
+<div id="filter-container">
+	<h2>Categories</h2>
+	<div class="type-filter" id="filter"></div>
+	<div class="button-container">
+		<div class="button" id="none-button">None</div>
+		<div class="button" id="all-button">All</div>
+		<div class="button" id="world-button">World</div>
+		<div class="button" id="europe-button">Europe</div>
+		<div class="button" id="usa-button">USA</div>
+	</div>
+	<div id="help" style="color: #aaa">
+		<ul>
+			<li id="keyboard-shortcuts">Keyboard shortcuts</li>
+			<div id="shortcuts-popup" style="display: none; position: absolute; background-color: white; border: 1px solid black; padding: 10px;">
+				<ul class="keyboard-shortcuts">
+					<li> <span class="key">a</span> <span class="key-info">= display all categories</a> </li>
+					<li> <span class="key">e</span> <span class="key-info">= zoom to Europe</a> </li>
+					<li> <span class="key">n</span> <span class="key-info">= display no categories</a> </li>
+					<li> <span class="key">u</span> <span class="key-info">= zoom to USA</a> </li>
+					<li> <span class="key">w</span> <span class="key-info">= zoom to world level</a> </li>
+					<li> <span class="key">-</span> <span class="key-info">= zoom out one level</a> </li>
+					<li> <span class="key">=</span> <span class="key-info">= zoom in one level</a> </li>
+					<li> <span class="key">_</span> <span class="key-info">= zoom out three levels</a> </li>
+					<li> <span class="key">+</span> <span class="key-info">= zoom in three levels</a> </li>
+				</ul>
+			</div>
+
+			<li> Click on points to zoom in/out. </li>
+
+			<li> Shift-click on points to open in Google Maps at current zoom. </li>
+		</ul>
+	</div>
+</div>
+<div id="map"></div>
+<div id="coordinates">Lat: --, Lng: --, Zoom: --</div>
+
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+// Element for the Category list:
+let filterDiv = document.querySelector('#filter');
+
+// Overlap distance in pixels between small circles to group popups.
+let overlapDistance = 10;
+
+// The number of entries that have the given category.
+let categoryCounts = {};
+
+let zoomCutoff = 3;
+let minZoom = 2;
+let originalZoom = 3;
+let originalCenter = {lat: 33, lng:-47};
+
+// Create map, which cannot be zoomed out greater than level 2 and
+// is centered in the Atlantic ocean.
+let map = L.map('map', { minZoom: minZoom })
+          .setView([originalCenter.lat, originalCenter.lng], originalZoom);
+
+// Add distance scale to map in both miles/feet and kiliometers/meters:
+L.control.scale({ imperial: true, metric: true }).addTo(map);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+// Location on page to display latitude/longitude/zoom:
+let coordsDiv = document.querySelector('#coordinates');
+
+// Initialize lat/lon/zoom display when map loads:
+updateCoords();
+
+// Update lat/lon/zoom info on mousemove and zoomend events:
+map.on('mousemove', updateCoords);
+map.on('zoomend',   updateCoords);
+
+// Close any open popup when the zoom changes:
+map.on('zoomend', () => {
+	map.closePopup();
+});
+
+// typeColors: {category: color} such as {"garden": "lightgreen"}.
+// This is filled in by the createMarker() function and is then
+// used to fill in the category list on the left side of the map.
+let typeColors = { };
+
+// selectedTypes: point categories that have been selected:
+let selectedTypes;
+
+// markers: list of smallCircles and largeCircles:
+let markers = [];
+
+
+
+//////////////////////////////
+//
+// updateCoords -- Update the latitude/longitude/zoom info on the webpage.
+//      Called by event listeners when the cursor moves or zoomend event occurs.
+//
+
+function updateCoords(e) {
+	let latlng;
+	if (e && e.latlng) {
+		latlng = e.latlng;  // Get coordinates from the event
+	} else {
+		latlng = map.getCenter();  // Fallback to the map center if no event or latlng is provided
+	}
+	coordsDiv.innerHTML = `Lat: ${latlng.lat.toFixed(5)}, Lng: ${latlng.lng.toFixed(5)}, Zoom: ${map.getZoom()}`;
+}
+
+
+
+//////////////////////////////
+//
+// isValidNumber -- Returns true if value is a number.
+//
+
+function isValidNumber(value) {
+	return !isNaN(value) && value !== null && value !== "";
+}
+
+
+
+//////////////////////////////
+//
+// createMarker -- Create and track markers for entries on the spreadsheet.
+//
+
+function createMarker(entry) {
+
+	// Get a list of the categories that the event is in:
+	let types = entry.Type.split(',').map(t => t.trim());
+
+	// Color according to the first category given for the entry:
+	let color = typeColors[types[0]] || 'black';
+	entry.color = color;
+
+	// Create a small circle colored by the main category for the entry:
+	// (L.circleMarker has the same diameter at all zoom levels).
+	let smallCircle = L.circleMarker([entry.Latitude, entry.Longitude], {
+		color: 'black',
+		opacity: 1.0,
+		weight: 1,
+		fillColor: color,
+		fillOpacity: 1.0,
+		radius: 7,
+		title: entry.Name,
+		interactive: false
+	}).addTo(map);
+
+	// Add a larger circle which is used to manage tooltips (and is transparent).
+	let largeCircle = L.circleMarker([entry.Latitude, entry.Longitude], {
+		color: 'transparent',
+		radius: 20,
+		weight: 1,
+		interactive: true
+	}).addTo(map);
+
+
+	// Store the markers for later processing:
+	markers.push({ smallCircle, largeCircle, entry, types });
+
+	// The large circle controls the popup.  When the map is zoomed out,
+	// display the small popup which is only the Name of the event.  If the
+	// small circle associated the larger circle overlapps other small circles,
+	// then the popup for the overlapped small circles will be merged into a
+	// combined list of entry names.
+
+	// Add a flag to track if the mouse is truly out of the circle
+	let isHovering = false;
+
+
+
+largeCircle.on('mouseover', () => {
+	isHovering = true;  // Set the flag when the mouse enters
+	let currentZoom = map.getZoom();
+	let offset = L.point(0, -smallCircle.options.radius);
+
+	if (currentZoom < entry.Zoom - zoomCutoff) {
+		let overlapping = getOverlappingCircles(smallCircle.getLatLng());
+
+		// Build the table rows with bullets right-aligned and name left-aligned
+		let overlappingTitles = overlapping.map(m => {
+			// Create bullets for each category associated with the point
+			let bullets = m.types.map(type => {
+				let bulletColor = typeColors[type.toLowerCase()] || 'black';
+				return `<span style="color:${bulletColor}" class="bullet">•</span>`;
+			}).join(' '); // Join bullets for each type (category)
+
+			// Return a table row with bullets in one column, and name in another
+			return `
+				<tr>
+					<td style="text-align: right; padding-right: 10px;">${bullets}</td>
+					<td style="text-align: left;">${m.entry.Name}</td>
+				</tr>
+			`;
+		}).join(''); // Join rows for each overlapping point
+
+		// Build the final table and insert into the tooltip
+		let tableContent = `<table>${overlappingTitles}</table>`;
+
+		if (overlappingTitles) {
+			largeCircle.bindTooltip(tableContent, { offset, direction: 'top' }).openTooltip();
+		}
+	} else {
+		largeCircle.unbindTooltip();
+		largeCircle.bindPopup(`
+			<b><a href="${entry.URL}" target="_blank">${entry.Name}</a></b><br>
+			${entry.Description}
+			`, { closeButton: false, offset: offset }).openPopup();
+	}
+});
+
+	let popupTimeout;
+	largeCircle.on('mouseout', (e) => {
+		// Check if the mouse is truly leaving the large circle's area
+		if (!e.relatedTarget || !e.relatedTarget.classList.contains('leaflet-interactive')) {
+			isHovering = false;  // Reset the flag
+			clearTimeout(popupTimeout);
+			popupTimeout = setTimeout(() => {
+				if (!isHovering) {
+					largeCircle.closeTooltip();
+					largeCircle.closePopup();
+				}
+			}, 1500);  // Keep the delay but only close if the mouse has left
+		}
+	});
+
+	largeCircle.on('click', (e) => {
+		handleCircleClick(e, entry, largeCircle);
+	});
+
+	smallCircle.on('click', (e) => {
+		handleCircleClick(e, entry, smallCircle);
+	});
+
+	// Ignore hovering for small circles to all hovering to be managed
+	// by large circle for popups:
+	smallCircle.on('mouseover', () => {
+		largeCircle.fire('mouseover');
+	});
+
+	return { smallCircle, largeCircle };
+}
+
+
+
+//////////////////////////////
+//
+// handleCircleClick -- What to do when a circle is clicked on (both large and small circles).
+//
+
+function handleCircleClick(e, entry, bigCircle) {
+	if (e.originalEvent.shiftKey) {
+		// Shift-click: Open Google Maps at the same zoom level
+		let zoom = map.getZoom();
+		let googleMapsUrl = `https://www.google.com/maps/@${entry.Latitude},${entry.Longitude},${zoom}z`;
+		window.open(googleMapsUrl, '_blank');
+	} else {
+		// Use the bigCircle's coordinates for zoom
+		let circleCenter = bigCircle.getLatLng();  // Get the center of the bigCircle
+
+		// Check for overlapping circles
+		let overlapping = getOverlappingCircles([entry.Latitude, entry.Longitude]);
+
+		if (overlapping.length > 1) {
+			// There are overlapping circles; calculate the bounds to fit them all
+			let latlngs = overlapping.map(m => m.smallCircle.getLatLng());
+
+			// Create a LatLngBounds object that includes all the lat/lngs
+			let bounds = L.latLngBounds(latlngs);
+
+			// Calculate padding (10% margin)
+			let paddingFactor = 0.1;
+			let latRange = bounds.getNorth() - bounds.getSouth();
+			let lngRange = bounds.getEast() - bounds.getWest();
+			let paddedBounds = L.latLngBounds(
+				[bounds.getSouth() - latRange * paddingFactor, bounds.getWest() - lngRange * paddingFactor],
+				[bounds.getNorth() + latRange * paddingFactor, bounds.getEast() + lngRange * paddingFactor]
+			);
+
+			// Fit the map to the padded bounds
+			map.fitBounds(paddedBounds);
+		} else {
+			// No overlapping circles: Maintain the original zoom behavior
+			let clicked = map.getZoom() !== entry.Zoom;
+
+			// Use bigCircle center for all zoom actions
+			map.setView(circleCenter, clicked ? entry.Zoom : originalZoom);
+
+			// Ensure that after zooming out to world level, the bigCircle is clicked again
+			if (!clicked) {
+				map.setView(originalCenter, originalZoom);
+			}
+
+			// Re-attach the event listener after zoom out to ensure it works correctly
+			bigCircle.off('click');  // Remove the old click listener
+			bigCircle.on('click', (event) => handleCircleClick(event, entry, bigCircle));  // Reattach
+		}
+	}
+}
+
+
+
+//////////////////////////////
+//
+// getOverlappingCircles -- Find overlapping small circles (centers less than 10 pixels apart.
+//     The small popups for these overlapping circles will be merged into a single list
+//     of point names for all overlapping circles.
+//
+
+function getOverlappingCircles(latlng) {
+	return markers
+		.filter(marker => {
+			if (!map.hasLayer(marker.smallCircle)) {
+				return false;
+			}
+			let dist = map.latLngToLayerPoint(latlng)
+				.distanceTo(map.latLngToLayerPoint(marker.smallCircle.getLatLng()));
+			return dist <= overlapDistance;
+		})
+		// Sort by Latitude in descending order (highest latitude first)
+		.sort((a, b) => b.entry.Latitude - a.entry.Latitude);
+}
+
+
+
+//////////////////////////////
+//
+// filterMarkers -- Filter the markers based on the selected types.
+//
+
+function filterMarkers() {
+	markers.forEach(({ largeCircle, smallCircle, types }) => {
+		let matches = types.some(t => selectedTypes.has(t));
+		if (matches) {
+			largeCircle.addTo(map);
+			smallCircle.addTo(map);
+		} else {
+			map.removeLayer(largeCircle);
+			map.removeLayer(smallCircle);
+		}
+	});
+}
+
+
+// Handle "None" button click to uncheck all checkboxes
+document.querySelector('#none-button').addEventListener('click', () => {
+		let checkboxes = filterDiv.querySelectorAll('input[type="checkbox"]');
+		checkboxes.forEach(checkbox => checkbox.checked = false);
+		selectedTypes.clear();
+		filterMarkers();
+});
+
+
+// Handle "All" button click to check all checkboxes
+document.querySelector('#all-button').addEventListener('click', () => {
+	let checkboxes = filterDiv.querySelectorAll('input[type="checkbox"]');
+	checkboxes.forEach(checkbox => {
+		checkbox.checked = true;
+		selectedTypes.add(checkbox.value);
+	});
+	filterMarkers();
+});
+
+
+// Handle "World" button click to zoom to the original view
+document.querySelector('#world-button').addEventListener('click', () => {
+	map.setView(originalCenter, originalZoom);
+});
+
+
+// Handle "Europe" button click
+document.querySelector('#europe-button').addEventListener('click', () => {
+	map.setView({lat: 49, lng:17}, 5);
+});
+
+
+// Handle "USA" button click
+document.querySelector('#usa-button').addEventListener('click', () => {
+	map.setView({lat: 40, lng:-97}, 5);
+});
+
+
+// Keydown event listener for keyboard commands:
+document.addEventListener('keydown', function(event) {
+
+	if (event.key === 'a' || event.key === 'A') {
+		document.querySelector('#all-button').click();
+	} else if (event.key === 'e' || event.key === 'E') {
+		document.querySelector('#europe-button').click();
+	} else if (event.key === 'n' || event.key === 'N') {
+		document.querySelector('#none-button').click();
+	} else if (event.key === 'u' || event.key === 'U') {
+		document.querySelector('#usa-button').click();
+	} else if (event.key === 'w' || event.key === 'W') {
+		document.querySelector('#world-button').click();
+	}
+
+});
+
+let shortcutsPopup = document.querySelector('#shortcuts-popup');
+let keyboardShortcuts = document.querySelector('#keyboard-shortcuts');
+
+keyboardShortcuts.addEventListener('mouseover', () => {
+	shortcutsPopup.style.display = 'block';
+	let rect = keyboardShortcuts.getBoundingClientRect();
+	shortcutsPopup.style.top = `${rect.bottom + window.scrollY}px`;
+	shortcutsPopup.style.left = `${rect.left + window.scrollX}px`;
+});
+
+keyboardShortcuts.addEventListener('mouseout', () => {
+	setTimeout(() => {
+		shortcutsPopup.style.display = 'none';
+	}, 2000); // Hide popup 1 second after mouseout from keyboard shortcut list
+});
+
+
+
+//////////////////////////////
+//
+// addDescriptionHyperlinks -- Add hyperlinks and expand abbreviations in marker descriptions.
+//
+//   UNESCO -> UNESCO World Heritage Site
+//             https://en.wikipedia.org/wiki/World_Heritage_Site
+//   USNNL  -> United States National Natural Landmark
+//             https://en.wikipedia.org/wiki/National_Natural_Landmark
+//   SNNR   -> Scottish National Nature Reserve
+//             https://en.wikipedia.org/wiki/National_nature_reserve_(Scotland)
+//   GBSM   -> Great Britain Scheduled Monument
+//             https://en.wikipedia.org/wiki/Scheduled_monument
+//
+
+function addDescriptionHyperlinks(item) {
+	if (!item.Description) {
+		return;
+	}
+	item.Description = item.Description.replace(/\bUSNNL\b/g, `<a target="_blank" href="https://en.wikipedia.org/wiki/National_Natural_Landmark">National Natural Landmark</a>`);
+	item.Description = item.Description.replace(/\bUNESCO\b/g, `<a target="_blank" href="https://en.wikipedia.org/wiki/World_Heritage_Site">UNESCO World Heritage Site</a>`);
+	item.Description = item.Description.replace(/\bSNNR\b/g, `<a target="_blank" href="https://en.wikipedia.org/wiki/National_nature_reserve_(Scotland)">National Nature Reserve</a>`);
+	item.Description = item.Description.replace(/\bGBSM\b/g, `<a target="_blank" href="https://en.wikipedia.org/wiki/Scheduled_monument">Scheduled Monument</a>`);
+}
+
+
+
+//////////////////////////////
+//
+// createTypeColorsAndSelectedTypes --
+//
+
+function createTypeColorsAndSelectedTypes(entries) {
+	for (let i=0; i<entries.length; i++) {
+		if (!entries[i].Type) {
+			continue;
+		}
+		let types = entries[i].Type.split(/\s*[;,]\s*/).map(t => t.trim());
+		for (let j=0; j<types.length; j++) {
+			if (!types[j]) {
+				continue;
+			}
+			if (categoryCounts[types[j]]) {
+				categoryCounts[types[j]]++;
+			} else {
+				categoryCounts[types[j]] = 1;
+			}
+		}
+	}
+
+	// List of colors to assign to location types defined in spreadsheet column "Type":
+	let colorList = [
+
+		"orange", "darkgoldenrod", "purple", "palegreen",
+		"deepskyblue", "fuchsia", "chocolate", "orangered",
+		"yellowgreen", "mediumblue", "teal", "hotpink",
+		"sienna", "darkorange", "limegreen", "navy",
+		"seagreen", "palevioletred", "maroon", "gold",
+		"cornflower", "paleturquoise", "plum", "indianred",
+		"olivedrab", "slateblue", "darkseagreen", "lightpink",
+		"wheat", "forestgreen", "teal", "aquamarine",
+		"violet", "crimson", "yellow"
+
+	];
+
+	// Sort categories in alphabetic order:
+	let ckeys = Object.keys(categoryCounts);
+	let collator = new Intl.Collator(undefined, { sensitivity: 'accent' });
+	ckeys.sort(collator.compare);
+
+	typeColors = {};
+	for (let i=0; i<ckeys.length; i++) {
+		typeColors[ckeys[i]] = colorList[i % colorList.length];
+	}
+
+	selectedTypes = new Set(Object.keys(typeColors));
+}
+
+
+
+//////////////////////////////
+//
+// DOMContentLoaded event listener -- Download data from the Google Spreadsheet
+//     and then create category checkboxes and display points on map.
+//
+
+document.addEventListener("DOMContentLoaded", function () {
+	// Load data from the Google Apps Script URL
+
+	// defaultZoom: If there is no zoom level in the Zoom parameters for a point,
+	// use this value:
+	let defaultZoom = 10;
+
+	// Google Apps macro ID for spreadsheet:
+	let mid = "AKfycbwnLYOffqTpPINYJLYK9UAU92QTsxAQnKC01pQLIKj4A1R5R7gszPVtJkve7gxSRUcd";
+
+	// Final spreadsheet URL:
+	let spreadsheetUrl = `https://script.google.com/macros/s/${mid}/exec`;
+	
+
+	fetch(spreadsheetUrl)
+	.then(response => response.json())
+	.then(data => {
+		// Filter out invalid entries and fill missing Zoom values
+		let entries = data.filter(item => {
+			let validLat = isValidNumber(item.Latitude);
+			let validLng = isValidNumber(item.Longitude);
+			if (!validLat || !validLng) {
+				console.warn(`Invalid Lat/Lng for ${item.Name}`);
+				return false;
+			}
+			if (!isValidNumber(item.Zoom)) {
+				// Use default zoom if missing:
+				item.Zoom = defaultZoom;
+			}
+			addDescriptionHyperlinks(item);
+			return true;
+		});
+
+		createTypeColorsAndSelectedTypes(entries);
+
+		entries.forEach(createMarker);
+		selectedTypes = new Set(Object.keys(typeColors));
+
+		// Capitalize all category names and sort alphabetically:
+		let types = [...new Set(Object.keys(typeColors))]
+					.map(type => type.charAt(0).toUpperCase() + type.slice(1))
+					.sort();
+
+		// Initialize display of markers on map:
+		filterMarkers();
+		document.body.classList.remove("wait");
+
+		// Captalize all category names and sort alphabetically:
+		let capitalTypes = [...new Set(Object.keys(typeColors))]
+					.map(type => type.charAt(0).toUpperCase() + type.slice(1))
+					.sort();
+
+		// Display categories in list:
+		capitalTypes.forEach(type => {
+			mainColor = typeColors[type.toLowerCase()] || 'black';
+			let label = document.createElement('label');
+			let lowerType = type.toLowerCase();
+			label.style.color = mainColor;
+			label.innerHTML = `<input type="checkbox" name="type" 
+				value="${lowerType}" checked style="accent-color: ${mainColor};"> ${type}&nbsp;(${categoryCounts[lowerType]})`;
+			filterDiv.appendChild(label);
+			label.querySelector('input').addEventListener('change', (event) => {
+				if (event.target.checked) {
+					selectedTypes.add(event.target.value);
+				} else {
+					selectedTypes.delete(event.target.value);
+				}
+				filterMarkers();
+			});
+		});
+
+		// Intialize display of markers on map:
+		filterMarkers();
+	})
+	.catch(error => {
+		console.error('Error fetching data:', error);
+		document.body.classList.remove("wait");
+	});
+
+
+});
+
+
+// See also https://gist.github.com/shimizu/925bd1a92b63753608ef for alternate ways of dealing
+// with overlapping points.
+
+</script>
+
+
+</body>
+</html>
