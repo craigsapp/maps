@@ -1,0 +1,623 @@
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+// vim: ts=3
+
+// MAPINFO: Object to store variables for the map.
+MAPINFO = {};
+
+// mode: street = street view/satellite = satellite view
+MAPINFO.mode = "street";
+
+// filterDiv: HTML element for the category list.
+MAPINFO.filterDiv = document.querySelector('#filter');
+
+// Overlap distance in pixels between small circles to group popups.
+MAPINFO.overlapDistance = 10;
+
+// categoryCounts: The number of entries that have the given category.
+MAPINFO.categoryCounts = {};
+
+// zoomCutoff: The zoom boundary between small and large popups, relative
+// to the zoom level of entries in the spreadsheet.
+MAPINFO.zoomCutoff = 3;
+
+// minZoom: The maximum zoom out of the world map.
+MAPINFO.minZoom = 2;
+
+// originalZoom: The initial zoom level of the world map when loading the webpage.
+MAPINFO.originalZoom = 3;
+
+// originalCenter: The initial center of the world map when loading the webpage.
+MAPINFO.originalCenter = {lat: 33, lng:-47};
+
+// Flag to track tile layer visibility for the "m" keyboard shortcut
+MAPINFO.tileLayerVisible = true; 
+
+let shortcutsPopup = document.querySelector('#shortcuts-popup');
+let keyboardShortcuts = document.querySelector('#keyboard-shortcuts');
+
+// Create map, which cannot be zoomed out greater than level 2 and
+// is centered in the Atlantic ocean.
+MAPINFO.map = L.map('map', { minZoom: MAPINFO.minZoom })
+          .setView([MAPINFO.originalCenter.lat, MAPINFO.originalCenter.lng], MAPINFO.originalZoom);
+
+document.querySelector('#map').focus();
+
+
+// Add distance scale to map in both miles/feet and kiliometers/meters:
+L.control.scale({ imperial: true, metric: true }).addTo(MAPINFO.map);
+
+showBaseMap();
+
+// Location on page to display latitude/longitude/zoom:
+let coordsDiv = document.querySelector('#coordinates');
+
+// Initialize lat/lon/zoom display when map loads:
+updateCoords();
+
+// Update lat/lon/zoom info on mousemove and zoomend events:
+MAPINFO.map.on('mousemove', updateCoords);
+MAPINFO.map.on('zoomend',   updateCoords);
+
+// Close any open popup when the zoom changes:
+MAPINFO.map.on('zoomend', () => {
+	MAPINFO.map.closePopup();
+});
+
+// typeColors: {category: color} such as {"garden": "lightgreen"}.
+// This is filled in by the createMarker() function and is then
+// used to fill in the category list on the left side of the map.
+let typeColors = { };
+
+// selectedTypes: point categories that have been selected:
+let selectedTypes;
+
+// markers: list of smallCircles and largeCircles:
+let markers = [];
+
+
+
+//////////////////////////////
+//
+// updateCoords -- Update the latitude/longitude/zoom info on the webpage.
+//      Called by event listeners when the cursor moves or zoomend event occurs.
+//
+
+function updateCoords(e) {
+	let latlng;
+	if (e && e.latlng) {
+		latlng = e.latlng;  // Get coordinates from the event
+	} else {
+		latlng = MAPINFO.map.getCenter();  // Fallback to the map center if no event or latlng is provided
+	}
+	coordsDiv.innerHTML = `Lat: ${latlng.lat.toFixed(5)}, Lng: ${latlng.lng.toFixed(5)}, Zoom: ${MAPINFO.map.getZoom()}`;
+}
+
+
+
+//////////////////////////////
+//
+// isValidNumber -- Returns true if value is a number.
+//
+
+function isValidNumber(value) {
+	return !isNaN(value) && value !== null && value !== "";
+}
+
+
+
+//////////////////////////////
+//
+// createMarker -- Create and track markers for entries on the spreadsheet.
+//
+
+function createMarker(entry) {
+
+	// Get a list of the categories that the event is in:
+	let types = entry.Type.split(',').map(t => t.trim());
+
+	// Color according to the first category given for the entry:
+	let color = typeColors[types[0]] || 'black';
+	entry.color = color;
+
+	// Create a small circle colored by the main category for the entry:
+	// (L.circleMarker has the same diameter at all zoom levels).
+	let smallCircle = L.circleMarker([entry.Latitude, entry.Longitude], {
+		color: 'black',
+		opacity: 1.0,
+		weight: 1,
+		fillColor: color,
+		fillOpacity: 1.0,
+		radius: 7,
+		title: entry.Name,
+		interactive: false
+	}).addTo(MAPINFO.map);
+
+	// Add a larger circle which is used to manage tooltips (and is transparent).
+	let largeCircle = L.circleMarker([entry.Latitude, entry.Longitude], {
+		color: 'transparent',
+		radius: 20,
+		weight: 1,
+		interactive: true
+	}).addTo(MAPINFO.map);
+
+
+	// Store the markers for later processing:
+	markers.push({ smallCircle, largeCircle, entry, types });
+
+	// The large circle controls the popup.  When the map is zoomed out,
+	// display the small popup which is only the Name of the event.  If the
+	// small circle associated the larger circle overlapps other small circles,
+	// then the popup for the overlapped small circles will be merged into a
+	// combined list of entry names.
+
+	// Add a flag to track if the mouse is truly out of the circle
+	let isHovering = false;
+
+
+
+largeCircle.on('mouseover', () => {
+	isHovering = true;  // Set the flag when the mouse enters
+	let currentZoom = MAPINFO.map.getZoom();
+	let offset = L.point(0, -smallCircle.options.radius);
+
+	if (currentZoom < entry.Zoom - MAPINFO.zoomCutoff) {
+		let overlapping = getOverlappingCircles(smallCircle.getLatLng());
+
+		// Build the table rows with bullets right-aligned and name left-aligned
+		let overlappingTitles = overlapping.map(m => {
+			// Create bullets for each category associated with the point
+			let bullets = m.types.map(type => {
+				let bulletColor = typeColors[type.toLowerCase()] || 'black';
+				return `<span style="color:${bulletColor}" class="bullet">•</span>`;
+			}).join(' '); // Join bullets for each type (category)
+
+			// Return a table row with bullets in one column, and name in another
+			return `
+				<tr>
+					<td style="text-align: right; padding-right: 10px;">${bullets}</td>
+					<td style="text-align: left;">${m.entry.Name}</td>
+				</tr>
+			`;
+		}).join(''); // Join rows for each overlapping point
+
+		// Build the final table and insert into the tooltip
+		let tableContent = `<table>${overlappingTitles}</table>`;
+
+		if (overlappingTitles) {
+			largeCircle.bindTooltip(tableContent, { offset, direction: 'top' }).openTooltip();
+		}
+	} else {
+		largeCircle.unbindTooltip();
+
+
+
+
+let youtubeLinks = '';
+
+if (entry.Youtube) {
+    let youtubeIds = entry.Youtube.split(/[, ]+/);
+
+    // Generate links for each YouTube ID
+    youtubeLinks = youtubeIds.map(id => {
+        let videoTitle = 'Watch on YouTube'; // Default title
+
+        // Fetch the actual video title asynchronously
+        fetchYouTubeTitle(id, function(title) {
+            document.querySelector(`#youtube-${id}`).setAttribute('title', title);
+        });
+
+        return `<a target="_blank" href="https://www.youtube.com/watch?v=${id}">
+                    <img id="youtube-${id}" src="https://upload.wikimedia.org/wikipedia/commons/7/75/YouTube_social_white_squircle_%282017%29.svg" 
+                         alt="YouTube" width="20" height="20" 
+                         style="vertical-align: middle;" 
+                         title="${videoTitle}">
+                </a>`;
+    }).join(' ');
+}
+
+largeCircle.bindPopup(`
+    <b><a href="${entry.URL}" target="_blank">${entry.Name}</a></b><br>
+    ${entry.Description} ${youtubeLinks}
+    `, { closeButton: false, offset: offset }).openPopup();
+
+	}
+
+
+
+/*
+
+
+		let youtubeLink = '';
+		if (entry.Youtube) {
+			// Split the Youtube field by either ", " or space
+			let youtubeIds = entry.Youtube.split(/[, ]+/);
+			// Generate links for each YouTube ID
+			youtubeLinks = youtubeIds.map(id => {
+				return `<a target="_blank" href="https://www.youtube.com/watch?v=${id}">
+				        <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/YouTube_social_white_squircle_%282017%29.svg" alt="YouTube" width="20" height="20" style="vertical-align: middle;">
+				        </a>`;
+			}).join(' '); // Join them with a space
+		}
+		if (youtubeLinks) {
+			youtubeLinks = " " + youtubeLinks;
+		}
+
+		largeCircle.bindPopup(`
+			<b><a href="${entry.URL}" target="_blank">${entry.Name}</a></b><br>
+			${entry.Description}${youtubeLinks}
+			`, { closeButton: false, offset: offset }).openPopup();
+	}
+
+
+*/
+
+});
+
+	let popupTimeout;
+	largeCircle.on('mouseout', (e) => {
+		// Check if the mouse is truly leaving the large circle's area
+		if (!e.relatedTarget || !e.relatedTarget.classList.contains('leaflet-interactive')) {
+			isHovering = false;  // Reset the flag
+			clearTimeout(popupTimeout);
+			popupTimeout = setTimeout(() => {
+				if (!isHovering) {
+					largeCircle.closeTooltip();
+					largeCircle.closePopup();
+				}
+			}, 1500);  // Keep the delay but only close if the mouse has left
+		}
+	});
+
+	largeCircle.on('click', (e) => {
+		handleCircleClick(e, entry, largeCircle);
+	});
+
+	smallCircle.on('click', (e) => {
+		handleCircleClick(e, entry, smallCircle);
+	});
+
+	// Ignore hovering for small circles to all hovering to be managed
+	// by large circle for popups:
+	smallCircle.on('mouseover', () => {
+		largeCircle.fire('mouseover');
+	});
+
+	return { smallCircle, largeCircle };
+}
+
+
+
+
+//////////////////////////////
+//
+// fetchYoutubeTitle --
+//
+
+function fetchYouTubeTitle(videoId, callback) {
+	return "Watch on Youtube";
+/*
+	let apiKey = '';
+	let url = `https://www.googleapis.com/youtube/v1/videos?id=${videoId}&key=${apiKey}&part=snippet`;
+
+	fetch(url)
+	.then(response => response.json())
+	.then(data => {
+		const title = data.items[0].snippet.title;
+		callback(title);
+	})
+	.catch(error => {
+		console.error('Error fetching YouTube title:', error);
+		callback('Watch on YouTube'); // Fallback title
+	});
+*/
+}
+
+
+
+//////////////////////////////
+//
+// handleCircleClick -- What to do when a circle is clicked on (both large and small circles).
+//
+
+function handleCircleClick(e, entry, bigCircle) {
+	if (e.originalEvent.shiftKey) {
+		// Shift-click: Open Google Maps at the same zoom level
+		let zoom = MAPINFO.map.getZoom();
+		let googleMapsUrl = `https://www.google.com/maps/@${entry.Latitude},${entry.Longitude},${zoom}z`;
+		window.open(googleMapsUrl, '_blank');
+	} else {
+		// Use the bigCircle's coordinates for zoom
+		let circleCenter = bigCircle.getLatLng();  // Get the center of the bigCircle
+
+		// Check for overlapping circles
+		let overlapping = getOverlappingCircles([entry.Latitude, entry.Longitude]);
+
+		if (overlapping.length > 1) {
+			// There are overlapping circles; calculate the bounds to fit them all
+			let latlngs = overlapping.map(m => m.smallCircle.getLatLng());
+
+			// Create a LatLngBounds object that includes all the lat/lngs
+			let bounds = L.latLngBounds(latlngs);
+
+			// Calculate padding (10% margin)
+			let paddingFactor = 0.1;
+			let latRange = bounds.getNorth() - bounds.getSouth();
+			let lngRange = bounds.getEast() - bounds.getWest();
+			let paddedBounds = L.latLngBounds(
+				[bounds.getSouth() - latRange * paddingFactor, bounds.getWest() - lngRange * paddingFactor],
+				[bounds.getNorth() + latRange * paddingFactor, bounds.getEast() + lngRange * paddingFactor]
+			);
+
+			// Fit the map to the padded bounds
+			MAPINFO.map.fitBounds(paddedBounds);
+		} else {
+			// No overlapping circles: Maintain the original zoom behavior
+			let clicked = MAPINFO.map.getZoom() !== entry.Zoom;
+
+			// Use bigCircle center for all zoom actions
+			MAPINFO.map.setView(circleCenter, clicked ? entry.Zoom : MAPINFO.originalZoom);
+
+			// Ensure that after zooming out to world level, the bigCircle is clicked again
+			if (!clicked) {
+				MAPINFO.map.setView(MAPINFO.originalCenter, MAPINFO.originalZoom);
+			}
+
+			// Re-attach the event listener after zoom out to ensure it works correctly
+			bigCircle.off('click');  // Remove the old click listener
+			bigCircle.on('click', (event) => handleCircleClick(event, entry, bigCircle));  // Reattach
+		}
+	}
+}
+
+
+
+//////////////////////////////
+//
+// getOverlappingCircles -- Find overlapping small circles (centers less than 10 pixels apart.
+//     The small popups for these overlapping circles will be merged into a single list
+//     of point names for all overlapping circles.
+//
+
+function getOverlappingCircles(latlng) {
+	return markers
+		.filter(marker => {
+			if (!MAPINFO.map.hasLayer(marker.smallCircle)) {
+				return false;
+			}
+			let dist = MAPINFO.map.latLngToLayerPoint(latlng)
+				.distanceTo(MAPINFO.map.latLngToLayerPoint(marker.smallCircle.getLatLng()));
+			return dist <= MAPINFO.overlapDistance;
+		})
+		// Sort by Latitude in descending order (highest latitude first)
+		.sort((a, b) => b.entry.Latitude - a.entry.Latitude);
+}
+
+
+
+//////////////////////////////
+//
+// filterMarkers -- Filter the markers based on the selected types.
+//
+
+function filterMarkers() {
+	markers.forEach(({ largeCircle, smallCircle, types }) => {
+		let matches = types.some(t => selectedTypes.has(t));
+		if (matches) {
+			largeCircle.addTo(MAPINFO.map);
+			smallCircle.addTo(MAPINFO.map);
+		} else {
+			MAPINFO.map.removeLayer(largeCircle);
+			MAPINFO.map.removeLayer(smallCircle);
+		}
+	});
+}
+
+
+
+//////////////////////////////
+//
+// toggleMapDisplay -- Show/hide map (to make finding circles easier on a busy map).
+//     Used by the "m" keyboard shortcut.
+//
+
+function toggleMapDisplay() {
+	if (MAPINFO.tileLayerVisible) {
+		MAPINFO.map.removeLayer(MAPINFO.tileLayer);
+	} else {
+		MAPINFO.map.addLayer(MAPINFO.tileLayer);
+	}
+	MAPINFO.tileLayerVisible = !MAPINFO.tileLayerVisible;
+}
+
+
+
+//////////////////////////////
+//
+// keydown event listener -- Keyboard shortcuts.
+//
+
+document.addEventListener('keydown', function(event) {
+
+	if (event.key === 'a' || event.key === 'A') {
+		document.querySelector('#all-button').click();
+	} else if (event.key === 'e' || event.key === 'E') {
+		document.querySelector('#europe-button').click();
+	} else if (event.key === 'n' || event.key === 'N') {
+		document.querySelector('#none-button').click();
+	} else if (event.key === 'm' || event.key === 'M') {
+		toggleMapDisplay();
+	} else if (event.key === 's' || event.key === 'S') {
+		toggleBaseMap();
+	} else if (event.key === 'u' || event.key === 'U') {
+		document.querySelector('#usa-button').click();
+	} else if (event.key === 'w' || event.key === 'W') {
+		document.querySelector('#world-button').click();
+	}
+
+});
+
+
+keyboardShortcuts.addEventListener('mouseover', () => {
+	shortcutsPopup.style.display = 'block';
+	let rect = keyboardShortcuts.getBoundingClientRect();
+	shortcutsPopup.style.top = `${rect.bottom + window.scrollY}px`;
+	shortcutsPopup.style.left = `${rect.left + window.scrollX}px`;
+});
+
+keyboardShortcuts.addEventListener('mouseout', () => {
+	setTimeout(() => {
+		shortcutsPopup.style.display = 'none';
+	}, 2000); // Hide popup 1 second after mouseout from keyboard shortcut list
+});
+
+
+
+//////////////////////////////
+//
+// addDescriptionHyperlinks -- Add hyperlinks and expand abbreviations in marker descriptions.
+//
+//   UNESCO = UNESCO World Heritage Site
+//   USNNL  = United States National Natural Landmark
+//   USNM   = United States National Monument
+//   SNNR   = Scottish National Nature Reserve
+//   GBSM   = Great Britain Scheduled Monument
+//   CHL    = California Historic Landmark
+//
+
+function addDescriptionHyperlinks(item) {
+	if (!item.Description) {
+		return;
+	}
+
+	const abbreviations = {
+		UNESCO: { name: "UNESCO World Heritage Site",     url: "https://en.wikipedia.org/wiki/World_Heritage_Site" },
+		USNNL:  { name: "National Natural Landmark",      url: "https://en.wikipedia.org/wiki/National_Natural_Landmark" },
+		USNM:   { name: "National Monument",              url: "https://en.wikipedia.org/wiki/List_of_national_monuments_of_the_United_States"},
+		SNNR:   { name: "National Nature Reserve",        url: "https://en.wikipedia.org/wiki/National_nature_reserve_(Scotland)" },
+		GBSM:   { name: "Scheduled Monument",             url: "https://en.wikipedia.org/wiki/Scheduled_monument" },
+		CHL:    { name: "California Historical Landmark", url: "https://en.wikipedia.org/wiki/California_Historical_Landmark" }
+	};
+
+	for (let key of Object.keys(abbreviations)) {
+		const regex = new RegExp(`\\b${key}\\b`, "g");
+		item.Description = item.Description.replace(regex,
+			`<a target="_blank" href="${abbreviations[key].url}">${abbreviations[key].name}</a>`);
+	}
+}
+
+
+
+//////////////////////////////
+//
+// createTypeColorsAndSelectedTypes --
+//
+
+function createTypeColorsAndSelectedTypes(entries) {
+	for (let i=0; i<entries.length; i++) {
+		if (!entries[i].Type) {
+			continue;
+		}
+		let types = entries[i].Type.split(/\s*[;,]\s*/).map(t => t.trim());
+		for (let j=0; j<types.length; j++) {
+			if (!types[j]) {
+				continue;
+			}
+			if (MAPINFO.categoryCounts[types[j]]) {
+				MAPINFO.categoryCounts[types[j]]++;
+			} else {
+				MAPINFO.categoryCounts[types[j]] = 1;
+			}
+		}
+	}
+
+	// List of colors to assign to location types defined in spreadsheet column "Type":
+	let colorList = [
+
+		"orange", "darkgoldenrod", "purple", "palegreen",
+		"deepskyblue", "fuchsia", "chocolate", "orangered",
+		"yellowgreen", "mediumblue", "teal", "hotpink",
+		"sienna", "darkorange", "limegreen", "navy",
+		"seagreen", "palevioletred", "maroon", "gold",
+		"cornflower", "paleturquoise", "plum", "indianred",
+		"olivedrab", "slateblue", "darkseagreen", "lightpink",
+		"wheat", "forestgreen", "teal", "aquamarine",
+		"violet", "crimson", "yellow"
+
+	];
+
+	// Sort categories in alphabetic order:
+	let ckeys = Object.keys(MAPINFO.categoryCounts);
+	let collator = new Intl.Collator(undefined, { sensitivity: 'accent' });
+	ckeys.sort(collator.compare);
+
+	typeColors = {};
+	for (let i=0; i<ckeys.length; i++) {
+		typeColors[ckeys[i]] = colorList[i % colorList.length];
+	}
+
+	selectedTypes = new Set(Object.keys(typeColors));
+}
+
+
+
+//////////////////////////////
+//
+// toggleTileLayer -- Show/hide the map.
+//
+
+function toggleTileLayer() {
+	if (MAPINFO.tileLayerVisible) {
+		MAPINFO.map.removeLayer(MAPINFO.tileLayer); // Hide the tile layer
+	} else {
+		MAPINFO.map.addLayer(MAPINFO.tileLayer); // Show the tile layer
+	}
+	MAPINFO.tileLayerVisible = !MAPINFO.tileLayerVisible; // Toggle the flag
+}
+
+
+//////////////////////////////
+//
+// toggleBaseMap --
+//
+
+function toggleBaseMap() {
+	if (MAPINFO.mode === "satellite") {
+		MAPINFO.mode = "street";
+	} else {
+		MAPINFO.mode = "satellite";
+	}
+	showBaseMap();
+}
+
+
+
+//////////////////////////////
+//
+// showBaseMap -- Show either a street map or a satellie map.
+//
+
+function showBaseMap() {
+	if (MAPINFO.mode === "satellite") {
+		// Add aerial/satellite tile layer from Esri World Imagery:
+		MAPINFO.tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+			maxZoom: 18,
+		}).addTo(MAPINFO.map);
+	} else {
+		MAPINFO.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(MAPINFO.map);
+	}
+}
+
+
+// See also https://gist.github.com/shimizu/925bd1a92b63753608ef for alternate ways of dealing
+// with overlapping points.
+
+</script>
+
+
+{% include_relative listeners.html %}
+
+
+

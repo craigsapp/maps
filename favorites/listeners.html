@@ -1,0 +1,133 @@
+
+<script>
+
+//////////////////////////////
+//
+// DOMContentLoaded event listener -- Download data from the Google Spreadsheet
+//     and then create category checkboxes and display points on map.
+//
+
+document.addEventListener("DOMContentLoaded", function () {
+	// Load data from the Google Apps Script URL:
+
+	// defaultZoom: If there is no zoom level in the Zoom parameters for a point,
+	// use this value:
+	let defaultZoom = 10;
+
+	// Google Apps macro ID for spreadsheet:
+	let mid = "AKfycbwnLYOffqTpPINYJLYK9UAU92QTsxAQnKC01pQLIKj4A1R5R7gszPVtJkve7gxSRUcd";
+
+	// Final spreadsheet URL:
+	let spreadsheetUrl = `https://script.google.com/macros/s/${mid}/exec`;
+	
+
+	fetch(spreadsheetUrl)
+	.then(response => response.json())
+	.then(data => {
+		// Filter out invalid entries and fill missing Zoom values
+		let entries = data.filter(item => {
+			let validLat = isValidNumber(item.Latitude);
+			let validLng = isValidNumber(item.Longitude);
+			if (!validLat || !validLng) {
+				console.warn(`Invalid Lat/Lng for ${item.Name}`);
+				return false;
+			}
+			if (!isValidNumber(item.Zoom)) {
+				// Use default zoom if missing:
+				item.Zoom = defaultZoom;
+			}
+			addDescriptionHyperlinks(item);
+			return true;
+		});
+
+		createTypeColorsAndSelectedTypes(entries);
+
+		entries.forEach(createMarker);
+		selectedTypes = new Set(Object.keys(typeColors));
+
+		// Capitalize all category names and sort alphabetically:
+		let types = [...new Set(Object.keys(typeColors))]
+					.map(type => type.charAt(0).toUpperCase() + type.slice(1))
+					.sort();
+
+		// Initialize display of markers on map:
+		filterMarkers();
+		document.body.classList.remove("wait");
+
+		// Captalize all category names and sort alphabetically:
+		let capitalTypes = [...new Set(Object.keys(typeColors))]
+					.map(type => type.charAt(0).toUpperCase() + type.slice(1))
+					.sort();
+
+		// Display categories in list:
+		capitalTypes.forEach(type => {
+			mainColor = typeColors[type.toLowerCase()] || 'black';
+			let label = document.createElement('label');
+			let lowerType = type.toLowerCase();
+			label.style.color = mainColor;
+			label.innerHTML = `<input type="checkbox" name="type" 
+				value="${lowerType}" checked style="accent-color: ${mainColor};"> ${type}&nbsp;(${MAPINFO.categoryCounts[lowerType]})`;
+			MAPINFO.filterDiv.appendChild(label);
+			label.querySelector('input').addEventListener('change', (event) => {
+				if (event.target.checked) {
+					selectedTypes.add(event.target.value);
+				} else {
+					selectedTypes.delete(event.target.value);
+				}
+				filterMarkers();
+			});
+		});
+
+		// Intialize display of markers on map:
+		filterMarkers();
+	})
+	.catch(error => {
+		console.error('Error fetching data:', error);
+		document.body.classList.remove("wait");
+	});
+
+
+});
+
+// Handle "None" button click to uncheck all checkboxes
+document.querySelector('#none-button').addEventListener('click', () => {
+		let checkboxes = MAPINFO.filterDiv.querySelectorAll('input[type="checkbox"]');
+		checkboxes.forEach(checkbox => checkbox.checked = false);
+		selectedTypes.clear();
+		filterMarkers();
+});
+
+
+// Handle "All" button click to check all checkboxes
+document.querySelector('#all-button').addEventListener('click', () => {
+	let checkboxes = MAPINFO.filterDiv.querySelectorAll('input[type="checkbox"]');
+	checkboxes.forEach(checkbox => {
+		checkbox.checked = true;
+		selectedTypes.add(checkbox.value);
+	});
+	filterMarkers();
+});
+
+
+// Handle "World" button click to zoom to the original view
+document.querySelector('#world-button').addEventListener('click', () => {
+	MAPINFO.map.setView(MAPINFO.originalCenter, MAPINFO.originalZoom);
+});
+
+
+// Handle "Europe" button click
+document.querySelector('#europe-button').addEventListener('click', () => {
+	MAPINFO.map.setView({lat: 49, lng:17}, 5);
+});
+
+
+// Handle "USA" button click
+document.querySelector('#usa-button').addEventListener('click', () => {
+	MAPINFO.map.setView({lat: 40, lng:-97}, 5);
+});
+
+
+</script>
+
+
+

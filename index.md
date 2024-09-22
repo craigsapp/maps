@@ -4,6 +4,7 @@ permalink:
 
 # Examples
 
+* [Satellite](/satellite) &mdash; Example display of satellite imagery in Leaftlet.
 * [Favorites](/favorites) &mdash; Example usage of Leaflet to create an interface for favorite locations.
 
 # Concepts

@@ -1,0 +1,146 @@
+
+
+<style>
+
+body {
+	display: flex;
+	margin: 0;
+	padding: 0;
+	font-family: sans-serif;
+	height: 100vh;
+}
+
+.wait {
+	cursor: wait;
+}
+
+*:focus {
+	/* no blue outlines for focused elements */
+	outline: none;
+	box-shadow: none;
+}
+
+.bullet {
+	margin: 0;
+	margin-right: -6px;
+	padding: 0;
+	display: inline-block;
+	font-size: 300%;
+	line-height: 0; /* Prevent changing the line height */
+	vertical-align: middle; /* Align the bullet with the text */
+}
+
+#map {
+	height: 100vh;
+	flex-grow: 1;
+	margin-left: 0;
+}
+
+#filter-container {
+	width: 325px;
+	min-height: 150px;
+	padding: 20px;
+	box-sizing: border-box;
+	background-color: #f4f4f4;
+	font-family: sans-serif;
+	margin: 0;
+	overflow-y: auto;
+}
+
+#filter-container h2 {
+	font-size: 1.5em;
+	font-weight: bold;
+	margin-bottom: 10px;
+	font-family: sans-serif;
+}
+
+.type-filter {
+	/* Older single-column styling:
+	display: flex;
+	flex-direction: column;
+	*/
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	column-gap: 8px;
+}
+
+.type-filter label {
+	margin-bottom: 5px;
+}
+
+#shortcuts-popup {
+	z-index: 999;
+	max-width: 200px;
+	white-space: nowrap;
+}
+
+#coordinates {
+	position: fixed;
+	bottom: 20px;
+	left: 20px;
+	background-color: transparent;
+	padding: 5px;
+	font-size: 12px;
+	font-family: sans-serif;
+	z-index: 100;
+}
+
+span.key {
+	font-weight: bold;
+}
+
+span.key-info {
+	color: #aaa;
+}
+
+.button-container {
+	display: flex;
+	justify-content: space-between;
+}
+
+.button {
+	padding: 6px;
+	display: inline-block;
+	margin-top: 12px;
+	text-align: center;
+	background-color: #333;
+	color: white;
+	border-radius: 5px;
+	cursor: pointer;
+	user-select: none;
+	flex: 1;
+	margin-right: 10px;
+}
+
+.button:last-child {
+	margin-right: 0;
+}
+
+.button:hover {
+	background-color: #555;
+}
+
+li#keyboard-shortcuts {
+	cursor: pointer;
+	color: blue;
+}
+
+#shortcuts-popup ul {
+	color: black;
+	list-style-type: none;
+	padding-left: 0;
+	margin-left: 0;
+}
+
+#shortcuts-popup li {
+	margin-left: 20px;      /* Optional: Adjust the left margin to position the disc */
+}
+
+
+a {
+	text-decoration: none;
+}
+
+
+</style>
+
