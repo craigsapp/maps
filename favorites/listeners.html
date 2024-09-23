@@ -43,10 +43,10 @@ document.addEventListener("DOMContentLoaded", function () {
 		createTypeColorsAndSelectedTypes(entries);
 
 		entries.forEach(createMarker);
-		selectedTypes = new Set(Object.keys(typeColors));
+		selectedTypes = new Set(Object.keys(MAPINFO.typeColors));
 
 		// Capitalize all category names and sort alphabetically:
-		let types = [...new Set(Object.keys(typeColors))]
+		let types = [...new Set(Object.keys(MAPINFO.typeColors))]
 					.map(type => type.charAt(0).toUpperCase() + type.slice(1))
 					.sort();
 
@@ -55,13 +55,13 @@ document.addEventListener("DOMContentLoaded", function () {
 		document.body.classList.remove("wait");
 
 		// Captalize all category names and sort alphabetically:
-		let capitalTypes = [...new Set(Object.keys(typeColors))]
+		let capitalTypes = [...new Set(Object.keys(MAPINFO.typeColors))]
 					.map(type => type.charAt(0).toUpperCase() + type.slice(1))
 					.sort();
 
 		// Display categories in list:
 		capitalTypes.forEach(type => {
-			mainColor = typeColors[type.toLowerCase()] || 'black';
+			mainColor = MAPINFO.typeColors[type.toLowerCase()] || 'black';
 			let label = document.createElement('label');
 			let lowerType = type.toLowerCase();
 			label.style.color = mainColor;
@@ -111,19 +111,32 @@ document.querySelector('#all-button').addEventListener('click', () => {
 
 // Handle "World" button click to zoom to the original view
 document.querySelector('#world-button').addEventListener('click', () => {
-	MAPINFO.map.setView(MAPINFO.originalCenter, MAPINFO.originalZoom);
+	MAPINFO.viewType = "world";
+	MAPINFO.map.setView(MAPINFO.view[MAPINFO.viewType].center, MAPINFO.view[MAPINFO.viewType].zoom);
 });
 
 
 // Handle "Europe" button click
 document.querySelector('#europe-button').addEventListener('click', () => {
-	MAPINFO.map.setView({lat: 49, lng:17}, 5);
+	MAPINFO.viewType = "europe";
+	MAPINFO.map.setView(MAPINFO.view[MAPINFO.viewType].center, MAPINFO.view[MAPINFO.viewType].zoom);
 });
 
 
 // Handle "USA" button click
 document.querySelector('#usa-button').addEventListener('click', () => {
-	MAPINFO.map.setView({lat: 40, lng:-97}, 5);
+	MAPINFO.viewType = "usa";
+	MAPINFO.map.setView(MAPINFO.view[MAPINFO.viewType].center, MAPINFO.view[MAPINFO.viewType].zoom);
+});
+
+
+// Update lat/lon/zoom info on mousemove and zoomend events:
+MAPINFO.map.on('mousemove', updateCoords);
+MAPINFO.map.on('zoomend',   updateCoords);
+
+// Close any open popup when the zoom changes:
+MAPINFO.map.on('zoomend', () => {
+	MAPINFO.map.closePopup();
 });
 
 
