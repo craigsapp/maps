@@ -1,0 +1,220 @@
+---
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background-color: purple; /* This background will show through when opacity < 1 */
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif; /* Set the font to sans-serif */
+        }
+        img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            z-index: 10;
+            width: 300px; /* Increased width to accommodate slider values */
+        }
+        .slider-container {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .slider-container label {
+            display: inline-block;
+            width: 100px; /* Set a width that allows space for sliders and values */
+            flex-shrink: 0; /* Prevent labels from shrinking */
+        }
+        .slider-container input {
+            flex-grow: 1;
+            margin-left: 10px;
+            margin-right: 10px; /* Add margin for spacing between slider and value */
+        }
+        .slider-container span {
+            width: 50px; /* Increase width for slider values to prevent overflow */
+            text-align: right;
+            font-weight: bold;
+            flex-shrink: 0; /* Prevent span from shrinking */
+        }
+        #colorKeyLabel {
+            white-space: nowrap;
+        }
+        /* Styling the reset button */
+        #resetButton {
+            background-color: #8B4513; /* Brown */
+            color: #F5F5DC; /* Beige text */
+            border: 1px solid black;
+            padding: 3px 10px;
+            border-radius: 6px; /* Rounded corners */
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+        }
+        /* Invert colors on hover */
+        #resetButton:hover {
+            background-color: #F5F5DC; /* Beige background */
+            color: #8B4513; /* Brown text */
+        }
+    </style>
+    <title>Harry Example with Controls and Reset</title>
+</head>
+<body>
+
+    <!-- Control panel -->
+    <div id="controls">
+        <div class="slider-container">
+            <label for="opacitySlider">Opacity: </label>
+            <input type="range" id="opacitySlider" min="0" max="1" step="0.01" value="1">
+            <span id="opacityValue">1</span>
+        </div>
+        <div class="slider-container">
+            <label for="brightnessSlider">Brightness: </label>
+            <input type="range" id="brightnessSlider" min="0" max="2" step="0.01" value="1">
+            <span id="brightnessValue">1</span>
+        </div>
+        <div class="slider-container">
+            <label for="contrastSlider">Contrast: </label>
+            <input type="range" id="contrastSlider" min="0" max="2" step="0.01" value="1">
+            <span id="contrastValue">1</span>
+        </div>
+        <div class="slider-container">
+            <label for="slopeSlider">Gain: </label>
+            <input type="range" id="slopeSlider" min="0" max="2" step="0.01" value="1">
+            <span id="slopeValue">1</span>
+        </div>
+        <div class="slider-container">
+            <label for="colorKeySlider" id="colorKeyLabel">White Keying: </label> <!-- Prevent line breaking -->
+            <input type="range" id="colorKeySlider" min="0" max="10" step="1" value="0">
+            <span id="colorKeyValue">0</span>
+        </div>
+
+        <!-- Reset Button -->
+        <button id="resetButton">Reset</button>
+    </div>
+
+    <!-- Image with white pixels made transparent -->
+    <img src="https://images.pexels.com/photos/838413/pexels-photo-838413.jpeg" id="image" alt="Image with white pixels removed">
+
+    <!-- SVG filter to remove white pixels with a dynamic threshold -->
+    <svg width="0" height="0">
+        <filter id="remove-white">
+            <feColorMatrix type="matrix"
+                values="1 0 0 0 0
+                        0 1 0 0 0
+                        0 0 1 0 0
+                        -1 -1 -1 1 1"/>
+            <feComponentTransfer>
+                <feFuncR type="linear" slope="1" />
+                <feFuncG type="linear" slope="1" />
+                <feFuncB type="linear" slope="1" />
+            </feComponentTransfer>
+        </filter>
+    </svg>
+
+    <script>
+        const image = document.getElementById("image");
+        const opacitySlider = document.getElementById("opacitySlider");
+        const brightnessSlider = document.getElementById("brightnessSlider");
+        const contrastSlider = document.getElementById("contrastSlider");
+        const colorKeySlider = document.getElementById("colorKeySlider");
+        const slopeSlider = document.getElementById("slopeSlider");
+        const removeWhiteFilter = document.getElementById("remove-white");
+        const resetButton = document.getElementById("resetButton");
+
+        // Spans to display slider values
+        const opacityValue = document.getElementById("opacityValue");
+        const brightnessValue = document.getElementById("brightnessValue");
+        const contrastValue = document.getElementById("contrastValue");
+        const colorKeyValue = document.getElementById("colorKeyValue");
+        const slopeValue = document.getElementById("slopeValue");
+
+        // Default slider values
+        const defaultValues = {
+            opacity: 1,
+            brightness: 1,
+            contrast: 1,
+            colorKey: 0,
+            slope: 1
+        };
+
+        // Update the image filter based on sliders
+        function updateFilters() {
+            const opacity = opacitySlider.value;
+            const brightness = brightnessSlider.value;
+            const contrast = contrastSlider.value;
+            const colorKeyVal = colorKeySlider.value;
+            const slope = slopeSlider.value;
+
+            // Display slider values
+            opacityValue.textContent = parseFloat(opacity).toFixed(2); // Display values with 2 decimal points
+            brightnessValue.textContent = parseFloat(brightness).toFixed(2);
+            contrastValue.textContent = parseFloat(contrast).toFixed(2);
+            colorKeyValue.textContent = colorKeyVal;
+            slopeValue.textContent = parseFloat(slope).toFixed(2);
+
+            // Reverse the color keying threshold (reversed: 0 = max transparency, 10 = no transparency)
+            const threshold = (255 - (10 - colorKeyVal) * 25.5) / 255;
+
+            // Dynamically update the feColorMatrix and feComponentTransfer to apply color keying and slope
+            removeWhiteFilter.innerHTML = `
+                <feColorMatrix type="matrix"
+                    values="1 0 0 0 0
+                            0 1 0 0 0
+                            0 0 1 0 0
+                            -${threshold} -${threshold} -${threshold} 1 1"/>
+                <feComponentTransfer>
+                    <feFuncR type="linear" slope="${slope}" />
+                    <feFuncG type="linear" slope="${slope}" />
+                    <feFuncB type="linear" slope="${slope}" />
+                </feComponentTransfer>
+            `;
+
+            // Apply brightness, contrast, opacity, and color keying via filters, and opacity separately
+            image.style.filter = `brightness(${brightness}) contrast(${contrast}) url(#remove-white)`;
+            image.style.opacity = opacity; // Apply opacity to blend with background
+        }
+
+        // Reset all sliders to their default values
+        function resetSliders() {
+            opacitySlider.value = defaultValues.opacity;
+            brightnessSlider.value = defaultValues.brightness;
+            contrastSlider.value = defaultValues.contrast;
+            colorKeySlider.value = defaultValues.colorKey;
+            slopeSlider.value = defaultValues.slope;
+
+            // Update the sliders visually after reset
+            updateFilters();
+        }
+
+        // Add event listeners to dynamically update the filters
+        opacitySlider.addEventListener("input", updateFilters);
+        brightnessSlider.addEventListener("input", updateFilters);
+        contrastSlider.addEventListener("input", updateFilters);
+        colorKeySlider.addEventListener("input", updateFilters);
+        slopeSlider.addEventListener("input", updateFilters);
+
+        // Add click event listener to reset button
+        resetButton.addEventListener("click", resetSliders);
+
+        // Initialize the filter on load
+        updateFilters();
+    </script>
+
+</body>
+</html>
+
