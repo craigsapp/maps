@@ -10,8 +10,10 @@ permalink:
 # Concepts
 
 * [Tiles](/tiles) &mdash; Global map servers typically break down world maps into 256x256 pixels images at 18 zoom levels.
-* [Keying](/tiles) &mdash; Make white transparent in an image using CSS and SVG.  This can be
-    called "white keying" and is analogous to green screens (which are more general and 
-    typically called chromakey in video editing software.  Also can be termed an alpha mask.
+* [Keying](/keying) &mdash; Make white pixels transparent in an
+image using CSS and SVG.  This can be
+    termed "white keying" and is analogous to green screening (which
+    is more general and typically called chromakey or color keying
+    in video editing software.  Also can be termed an alpha mask.
 
 
