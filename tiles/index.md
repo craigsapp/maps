@@ -10,9 +10,12 @@ permalink: /tiles.html
 # Tiles
 
 
-```
-https://tile.openstreetmap.org/{z}/{x}/{y}.png
-```
+Choose a map tile server:
+
+<select id="server-select" onchange="displayZoomTable()">
+<option value="https://tile.openstreetmap.org/{z}/{x}/{y}.png">https://tile.openstreetmap.org/{z}/{x}/{y}.png</option>
+<option value="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}">https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}</option>
+</select>
 
 
 Choose zoom level: <select id="zoom-select" onchange="displayZoomTable(this)">
@@ -81,6 +84,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 function displayZoomTable(selectElement) {
+    if (!selectElement) {
+        selectElement = document.querySelector("#zoom-select");
+    }
+    let serverElement = document.querySelector("#server-select");
 	let zoom = parseInt(selectElement.value);
 
 	let output = `<table class="tile">\n`;
@@ -106,7 +113,11 @@ function displayZoomTable(selectElement) {
 						output += `<td class="narrow">${row-1}</td>`;
 					}
 				} else { // col > 0
-					let url = `https://tile.openstreetmap.org/${zoom}/${col-1}/${row-1}.png`;
+                    let url = serverElement.value;
+                    url = url.replace(/\{z\}/g, zoom);
+                    url = url.replace(/\{x\}/g, col-1);
+                    url = url.replace(/\{y\}/g, row-1);
+					// let url = `https://tile.openstreetmap.org/${zoom}/${col-1}/${row-1}.png`;
 					output += `<td class="tile"><a href="${url}" target="_blank"><img src="${url}" title="${url}"/></a></td>`;
 				}
 			}

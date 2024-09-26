@@ -1,0 +1,142 @@
+---
+---
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UNESCO World Heritage Sites in Poland</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>UNESCO World Heritage Sites in Poland</h1>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map and set its view to Poland
+        var map = L.map('map').setView([51.9194, 19.1451], 6); // Poland coordinates and zoom level
+
+        // Load the tile layer from OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // UNESCO World Heritage sites in Poland with categories: cultural, natural, mixed
+        var unescoSitesPoland = [
+            {
+                name: "Historic Centre of Kraków",
+                lat: 50.0614,
+                lon: 19.9372,
+                type: "cultural",
+                wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Krak%C3%B3w"
+            },
+            {
+                name: "Wieliczka and Bochnia Royal Salt Mines",
+                lat: 49.9863,
+                lon: 20.0556,
+                type: "cultural",
+                wiki: "https://en.wikipedia.org/wiki/Wieliczka_and_Bochnia_Royal_Salt_Mines"
+            },
+            {
+                name: "Auschwitz Birkenau German Nazi Concentration and Extermination Camp (1940–1945)",
+                lat: 50.0354,
+                lon: 19.1783,
+                type: "cultural",
+                wiki: "https://en.wikipedia.org/wiki/Auschwitz_concentration_camp"
+            },
+            {
+                name: "Białowieża Forest",
+                lat: 52.7000,
+                lon: 23.8000,
+                type: "natural",
+                wiki: "https://en.wikipedia.org/wiki/Bia%C5%82owie%C5%BCa_Forest"
+            },
+            {
+                name: "Castle of the Teutonic Order in Malbork",
+                lat: 54.0397,
+                lon: 19.0275,
+                type: "cultural",
+                wiki: "https://en.wikipedia.org/wiki/Malbork_Castle"
+            },
+            {
+                name: "Centennial Hall in Wrocław",
+                lat: 51.1063,
+                lon: 17.0778,
+                type: "cultural",
+                wiki: "https://en.wikipedia.org/wiki/Centennial_Hall"
+            },
+            {
+                name: "Wooden Churches of Southern Lesser Poland",
+                lat: 49.7476,
+                lon: 20.5338,
+                type: "cultural",
+                wiki: "https://en.wikipedia.org/wiki/Wooden_Churches_of_Southern_Lesser_Poland"
+            },
+            {
+                name: "Medieval Town of Toruń",
+                lat: 53.0138,
+                lon: 18.5984,
+                type: "cultural",
+                wiki: "https://en.wikipedia.org/wiki/Medieval_Town_of_Toru%C5%84"
+            },
+            {
+                name: "Kalwaria Zebrzydowska: the Mannerist Architectural and Park Landscape Complex",
+                lat: 49.8668,
+                lon: 19.6755,
+                type: "cultural",
+                wiki: "https://en.wikipedia.org/wiki/Kalwaria_Zebrzydowska"
+            },
+            {
+                name: "Muskauer Park / Park Mużakowski",
+                lat: 51.5480,
+                lon: 14.7146,
+                type: "mixed",
+                wiki: "https://en.wikipedia.org/wiki/Muskauer_Park"
+            }
+        ];
+
+        // Function to get marker color based on UNESCO site type
+        function getColor(type) {
+            if (type === "cultural") return "red";
+            else if (type === "natural") return "blue";
+            else return "purple"; // mixed
+        }
+
+        // Add circle markers for each UNESCO site in Poland with color coding
+        unescoSitesPoland.forEach(function(site) {
+            var marker = L.circleMarker([site.lat, site.lon], {
+                color: getColor(site.type),
+                fillColor: getColor(site.type),
+                fillOpacity: 0.7,
+                radius: 8
+            }).addTo(map);
+            
+            // Add a tooltip for hovering showing the name
+            marker.bindTooltip(site.name, { 
+                permanent: false, 
+                direction: "top", 
+                offset: L.point(0, -10) 
+            });
+
+            // On marker click, open the Wikipedia link in a new tab
+            marker.on('click', function() {
+                window.open(site.wiki, '_blank');
+            });
+        });
+    </script>
+
+
+<div style="margin-top:40px; margin-right:100px; width:600px;">
+Create a leaflet map zoomed in on Poland showing all UNESCO sites in Poland. Each site is to be represented by a circleMarker (red for cultural, blue for natural sites and purple for mixed sites). with a one-line popup when hovering over a site, giving the name of the site. Clicking one the circle opens a new tab in the browser, taking the user to the wikipedia entry for the site.
+</div>
+
+
+</body>
+</html>
+
