@@ -1,0 +1,871 @@
+---
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>UNESCO World Heritage Sites in Europe</title>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+	<style>
+		html, body {
+			height: 100%	
+			margin: 0;
+			padding: 0;
+			width: 100%;
+		}
+
+		#map {
+			height: 100%;
+			width: 100%;
+		}
+		#countrySelect {
+			position: absolute;
+			bottom: 10px;
+			left: 10px;
+			z-index: 1000;
+			background-color: white;
+			padding: 10px;
+			border-radius: 5px;
+		}
+	</style>
+</head>
+<body>
+	<!-- Country select dropdown menu -->
+	<div id="countrySelect">
+		<label for="country">Country:</label>
+		<select id="country" onchange="centerOnCountry()">
+			<option value="default">Select a country</option>
+			<option value="Albania">(3) Albania</option>
+			<option value="Andorra">(1) Andorra</option>
+			<option value="Armenia">(3) Armenia</option>
+			<option value="Austria">(10) Austria</option>
+			<option value="Azerbaijan">(3) Azerbaijan</option>
+			<option value="Belarus">(4) Belarus</option>
+			<option value="Belgium">(13) Belgium</option>
+			<option value="Bosnia and Herzegovina">(2) Bosnia and Herzegovina</option>
+			<option value="Bulgaria">(10) Bulgaria</option>
+			<option value="Croatia">(10) Croatia</option>
+			<option value="Cyprus">(3) Cyprus</option>
+			<option value="Czech Republic">(14) Czech Republic</option>
+			<option value="Denmark">(10) Denmark</option>
+			<option value="Estonia">(2) Estonia</option>
+			<option value="Finland">(7) Finland</option>
+			<option value="France">(49) France</option>
+			<option value="Georgia">(4) Georgia</option>
+			<option value="Germany">(51) Germany</option>
+			<option value="Greece">(18) Greece</option>
+			<option value="Hungary">(8) Hungary</option>
+			<option value="Iceland">(3) Iceland</option>
+			<option value="Ireland">(2) Ireland</option>
+			<option value="Italy">(58) Italy</option>
+			<option value="Latvia">(2) Latvia</option>
+			<option value="Lithuania">(4) Lithuania</option>
+			<option value="Luxembourg">(1) Luxembourg</option>
+			<option value="Malta">(3) Malta</option>
+			<option value="Moldova">(1) Moldova</option>
+			<option value="Monaco">(1) Monaco</option>
+			<option value="Montenegro">(2) Montenegro</option>
+			<option value="Netherlands">(12) Netherlands</option>
+			<option value="North Macedonia">(2) North Macedonia</option>
+			<option value="Norway">(8) Norway</option>
+			<option value="Poland">(16) Poland</option>
+			<option value="Portugal">(17) Portugal</option>
+			<option value="Romania">(9) Romania</option>
+			<option value="Russia">(30) Russia</option>
+			<option value="San Marino">(1) San Marino</option>
+			<option value="Serbia">(5) Serbia</option>
+			<option value="Slovakia">(7) Slovakia</option>
+			<option value="Slovenia">(5) Slovenia</option>
+			<option value="Spain">(49) Spain</option>
+			<option value="Sweden">(15) Sweden</option>
+			<option value="Switzerland">(12) Switzerland</option>
+			<option value="Turkey">(19) Turkey</option>
+			<option value="Ukraine">(7) Ukraine</option>
+			<option value="United Kingdom">(33) United Kingdom</option>
+		</select>
+	</div>
+
+	<div id="map"></div>
+
+	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+	<script>
+		// Initialize the map
+		var map = L.map('map', {minZoom: 5}).setView([48, 16], 5); // General Europe view
+
+		// Load the tile layer from OpenStreetMap
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+		}).addTo(map);
+
+		// UNESCO World Heritage sites data for all European countries
+		var unescoSites = [
+			// Albania (3 sites)
+			{name: "Butrint", lat: 39.7452, lon: 20.0206, country: "Albania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Butrint"},
+			{name: "Historic Centres of Berat and Gjirokastra", lat: 40.709, lon: 19.9526, country: "Albania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centres_of_Berat_and_Gjirokastra"},
+			{name: "Natural and Cultural Heritage of the Ohrid Region", lat: 40.9006, lon: 20.6796, country: "Albania", type: "mixed", wiki: "https://en.wikipedia.org/wiki/Natural_and_Cultural_Heritage_of_the_Ohrid_region"},
+
+			// Andorra (1 site)
+			{name: "Madriu-Perafita-Claror Valley", lat: 42.519, lon: 1.6019, country: "Andorra", type: "mixed", wiki: "https://en.wikipedia.org/wiki/Madriu-Perafita-Claror_Valley"},
+
+			// Armenia (3 sites)
+			{name: "Monasteries of Haghpat and Sanahin", lat: 41.0902, lon: 44.7119, country: "Armenia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Monasteries_of_Haghpat_and_Sanahin"},
+			{name: "Cathedral and Churches of Echmiatsin and the Archaeological Site of Zvartnots", lat: 40.1592, lon: 44.3001, country: "Armenia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Etchmiadzin_Cathedral"},
+			{name: "Monastery of Geghard and the Upper Azat Valley", lat: 40.1429, lon: 44.8177, country: "Armenia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Geghard"},
+
+			// Austria (10 sites)
+			{name: "Historic Centre of Vienna", lat: 48.2082, lon: 16.3738, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Vienna"},
+			{name: "Schönbrunn Palace", lat: 48.1845, lon: 16.3122, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sch%C3%B6nbrunn_Palace"},
+			{name: "Hallstatt-Dachstein / Salzkammergut Cultural Landscape", lat: 47.5615, lon: 13.6489, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Hallstatt-Dachstein/Salzkammergut_Cultural_Landscape"},
+			{name: "Fertő / Neusiedlersee Cultural Landscape", lat: 47.6833, lon: 16.7667, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fert%C5%91/Neusiedlersee_Cultural_Landscape"},
+			{name: "Semmering Railway", lat: 47.6297, lon: 15.8278, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Semmering_railway"},
+			{name: "Historic Centre of the City of Salzburg", lat: 47.8095, lon: 13.0550, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_the_City_of_Salzburg"},
+			{name: "Wachau Cultural Landscape", lat: 48.3294, lon: 15.4197, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wachau"},
+			{name: "City of Graz – Historic Centre and Schloss Eggenberg", lat: 47.0707, lon: 15.4395, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/City_of_Graz_–_Historic_Centre_and_Schloss_Eggenberg"},
+			{name: "Prehistoric Pile dwellings around the Alps", lat: 46.9581, lon: 10.8662, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_pile_dwellings_around_the_Alps"},
+			{name: "The Great Spa Towns of Europe", lat: 48.9526, lon: 14.5052, country: "Austria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+
+			// Azerbaijan (3 sites)
+			{name: "Walled City of Baku with the Shirvanshah's Palace and Maiden Tower", lat: 40.3667, lon: 49.8371, country: "Azerbaijan", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Walled_City_of_Baku_with_the_Shirvanshah%27s_Palace_and_Maiden_Tower"},
+			{name: "Gobustan Rock Art Cultural Landscape", lat: 40.084, lon: 49.4169, country: "Azerbaijan", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Gobustan_Rock_Art_Cultural_Landscape"},
+			{name: "Historic Centre of Sheki with the Khan’s Palace", lat: 41.1982, lon: 47.1683, country: "Azerbaijan", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Sheki_with_the_Khan%27s_Palace"},
+
+			// Belarus (4 sites)
+			{name: "Architectural, Residential and Cultural Complex of the Radziwill Family at Nesvizh", lat: 53.2186, lon: 26.6906, country: "Belarus", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Nesvizh_Castle"},
+			{name: "Mir Castle Complex", lat: 53.4515, lon: 26.4733, country: "Belarus", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mir_Castle"},
+			{name: "Białowieża Forest", lat: 52.7000, lon: 23.8000, country: "Belarus", type: "natural", wiki: "https://en.wikipedia.org/wiki/Bia%C5%82owie%C5%BCa_Forest"},
+			{name: "Struve Geodetic Arc", lat: 55.1639, lon: 26.9191, country: "Belarus", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+
+			// Belgium (13 sites)
+			{name: "Flemish Béguinages", lat: 50.8725, lon: 4.7016, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Flemish_B%C3%A9guinages"},
+			{name: "La Grand-Place, Brussels", lat: 50.8467, lon: 4.3499, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Grand_Place"},
+			{name: "The Four Lifts on the Canal du Centre and their Environs, La Louvière and Le Roeulx", lat: 50.4914, lon: 4.1436, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Four_Lifts_on_the_Canal_du_Centre_and_their_Environs,_La_Louvi%C3%A8re_and_Le_Roeulx"},
+			{name: "Cathedral of Notre-Dame, Tournai", lat: 50.6069, lon: 3.3894, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tournai_Cathedral"},
+			{name: "Major Town Houses of the Architect Victor Horta (Brussels)", lat: 50.8254, lon: 4.3517, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Major_Town_Houses_of_the_Architect_Victor_Horta_(Brussels)"},
+			{name: "Neolithic Flint Mines at Spiennes", lat: 50.4258, lon: 4.0122, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Neolithic_Flint_Mines_at_Spiennes"},
+			{name: "Notre-Dame Cathedral in Tournai", lat: 50.6069, lon: 3.3894, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tournai_Cathedral"},
+			{name: "Plantin-Moretus House-Workshops-Museum Complex", lat: 51.2171, lon: 4.3984, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Plantin-Moretus_House-Workshops-Museum_Complex"},
+			{name: "The Belfries of Belgium and France", lat: 50.4674, lon: 2.8885, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Belfries_of_Belgium_and_France"},
+			{name: "Major Mining Sites of Wallonia", lat: 50.4705, lon: 5.8471, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Major_Mining_Sites_of_Wallonia"},
+			{name: "Leuven's University Library", lat: 50.8813, lon: 4.7013, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Leuven"},
+			{name: "Stoclet House", lat: 50.8391, lon: 4.4025, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Stoclet_Palace"},
+			{name: "The Great Spa Towns of Europe", lat: 50.4973, lon: 4.0915, country: "Belgium", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+
+			// Bosnia and Herzegovina (2 sites)
+			{name: "Old Bridge Area of the Old City of Mostar", lat: 43.3383, lon: 17.8078, country: "Bosnia and Herzegovina", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_Bridge_Area_of_the_Old_City_of_Mostar"},
+			{name: "Mehmed Paša Sokolović Bridge in Višegrad", lat: 43.7839, lon: 19.2904, country: "Bosnia and Herzegovina", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mehmed_Pa%C5%A1a_Sokolovi%C4%87_Bridge"},
+
+			// Bulgaria (10 sites)
+			{name: "Boyana Church", lat: 42.6369, lon: 23.2642, country: "Bulgaria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Boyana_Church"},
+			{name: "Madara Rider", lat: 43.2786, lon: 27.1225, country: "Bulgaria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Madara_Rider"},
+			{name: "Thracian Tomb of Kazanlak", lat: 42.6278, lon: 25.4042, country: "Bulgaria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Thracian_Tomb_of_Kazanlak"},
+			{name: "Thracian Tomb of Sveshtari", lat: 43.7384, lon: 26.6702, country: "Bulgaria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Thracian_Tomb_of_Sveshtari"},
+			{name: "Rila Monastery", lat: 42.1355, lon: 23.3394, country: "Bulgaria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Rila_Monastery"},
+			{name: "Ancient City of Nessebar", lat: 42.6586, lon: 27.7367, country: "Bulgaria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Nessebar"},
+			{name: "Pirin National Park", lat: 41.7431, lon: 23.4474, country: "Bulgaria", type: "natural", wiki: "https://en.wikipedia.org/wiki/Pirin_National_Park"},
+			{name: "Srebarna Nature Reserve", lat: 44.1006, lon: 27.0728, country: "Bulgaria", type: "natural", wiki: "https://en.wikipedia.org/wiki/Srebarna_Nature_Reserve"},
+			{name: "Rock-Hewn Churches of Ivanovo", lat: 43.7179, lon: 25.9509, country: "Bulgaria", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Rock-Hewn_Churches_of_Ivanovo"},
+			{name: "Central Balkan National Park", lat: 42.7685, lon: 24.7757, country: "Bulgaria", type: "natural", wiki: "https://en.wikipedia.org/wiki/Central_Balkan_National_Park"},
+
+			// Croatia (10 sites)
+			{name: "Old City of Dubrovnik", lat: 42.6403, lon: 18.1108, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Dubrovnik"},
+			{name: "Historical Complex of Split with the Palace of Diocletian", lat: 43.5081, lon: 16.4402, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historical_Complex_of_Split_with_the_Palace_of_Diocletian"},
+			{name: "Plitvice Lakes National Park", lat: 44.8807, lon: 15.6184, country: "Croatia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Plitvice_Lakes_National_Park"},
+			{name: "Episcopal Complex of the Euphrasian Basilica in the Historic Centre of Poreč", lat: 45.2279, lon: 13.5946, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Euphrasian_Basilica"},
+			{name: "Cathedral of St. James in Šibenik", lat: 43.7350, lon: 15.8891, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/%C5%A0ibenik_Cathedral"},
+			{name: "Stari Grad Plain", lat: 43.1833, lon: 16.6000, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Stari_Grad_Plain"},
+			{name: "Stećci Medieval Tombstone Graveyards", lat: 43.7325, lon: 18.7889, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ste%C4%87ci_Medieval_Tombstone_Graveyards"},
+			{name: "Venetian Works of Defence between 15th and 17th Centuries", lat: 45.4333, lon: 12.3167, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Venetian_Works_of_Defence_between_15th_and_17th_centuries"},
+			{name: "Zadar's Cathedral", lat: 44.1154, lon: 15.2272, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Zadar"},
+			{name: "Great Spa Towns of Europe", lat: 48.7196, lon: 9.0076, country: "Croatia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+
+			// Cyprus (3 sites)
+			{name: "Paphos", lat: 34.7762, lon: 32.4264, country: "Cyprus", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Paphos"},
+			{name: "Painted Churches in the Troodos Region", lat: 34.9164, lon: 32.8765, country: "Cyprus", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Painted_Churches_in_the_Troodos_Region"},
+			{name: "Choirokoitia", lat: 34.8083, lon: 33.3492, country: "Cyprus", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Choirokoitia"},
+
+			// Czech Republic (14 sites)
+			{name: "Historic Centre of Prague", lat: 50.0755, lon: 14.4378, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Prague"},
+			{name: "Kutná Hora: Historical Town Centre with the Church of St Barbara and the Cathedral of Our Lady at Sedlec", lat: 49.9481, lon: 15.2682, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Kutn%C3%A1_Hora"},
+			{name: "Lednice-Valtice Cultural Landscape", lat: 48.7839, lon: 16.8039, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Lednice%E2%80%93Valtice_Cultural_Landscape"},
+			{name: "Holy Trinity Column in Olomouc", lat: 49.5938, lon: 17.2518, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Holy_Trinity_Column_in_Olomouc"},
+			{name: "Litomyšl Castle", lat: 49.8672, lon: 16.3125, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Litomy%C5%A1l_Castle"},
+			{name: "Tugendhat Villa in Brno", lat: 49.2043, lon: 16.6154, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Villa_Tugendhat"},
+			{name: "Jewish Quarter and St Procopius' Basilica in Třebíč", lat: 49.2153, lon: 15.8817, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Jewish_Quarter_and_St._Procopius%27_Basilica_in_T%C5%99eb%C3%AD%C4%8D"},
+			{name: "Gardens and Castle at Kroměříž", lat: 49.2975, lon: 17.3939, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Gardens_and_Castle_at_Krom%C4%9B%C5%99%C3%AD%C5%BE"},
+			{name: "Historic Centre of Český Krumlov", lat: 48.8127, lon: 14.3175, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/%C4%8Cesk%C3%BD_Krumlov"},
+			{name: "Historic Centre of Telč", lat: 49.1833, lon: 15.4500, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tel%C4%8D"},
+			{name: "Pilsen's Brewery", lat: 49.748, lon: 13.3777, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pilsen"},
+			{name: "The Holy Mount", lat: 49.7392, lon: 13.375, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Holy_Mount"},
+			{name: "St. Wenceslas Cathedral", lat: 49.4869, lon: 17.3544, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/St._Wenceslas_Cathedral"},
+			{name: "The Great Spa Towns of Europe", lat: 50.2322, lon: 12.8734, country: "Czech Republic", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+
+			// Denmark (10 sites)
+			{name: "Jelling Mounds, Runic Stones and Church", lat: 55.7535, lon: 9.4157, country: "Denmark", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Jelling_Mounds,_Runic_Stones_and_Church"},
+			{name: "Kronborg Castle", lat: 56.0392, lon: 12.6215, country: "Denmark", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Kronborg"},
+			{name: "Roskilde Cathedral", lat: 55.6411, lon: 12.0804, country: "Denmark", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Roskilde_Cathedral"},
+			{name: "The Wadden Sea", lat: 55.3364, lon: 8.4871, country: "Denmark", type: "natural", wiki: "https://en.wikipedia.org/wiki/Wadden_Sea"},
+			{name: "Par force hunting landscape in North Zealand", lat: 55.8818, lon: 12.3469, country: "Denmark", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Par_force_hunting_landscape_in_North_Zealand"},
+			{name: "Ilulissat Icefjord", lat: 69.2167, lon: -51.0833, country: "Denmark", type: "natural", wiki: "https://en.wikipedia.org/wiki/Ilulissat_Icefjord"},
+			{name: "Christiansfeld, a Moravian Church Settlement", lat: 55.3552, lon: 9.4917, country: "Denmark", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Christiansfeld,_a_Moravian_Church_Settlement"},
+			{name: "Stevns Klint", lat: 55.2866, lon: 12.4252, country: "Denmark", type: "natural", wiki: "https://en.wikipedia.org/wiki/Stevns_Klint"},
+			{name: "The Wadden Sea", lat: 54.336, lon: 8.602, country: "Denmark", type: "natural", wiki: "https://en.wikipedia.org/wiki/Wadden_Sea"},
+			{name: "The Great Spa Towns of Europe", lat: 55.6912, lon: 12.4831, country: "Denmark", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+
+			// Estonia (2 sites)
+			{name: "Historic Centre (Old Town) of Tallinn", lat: 59.4370, lon: 24.7536, country: "Estonia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_(Old_Town)_of_Tallinn"},
+			{name: "Struve Geodetic Arc", lat: 58.3776, lon: 26.7302, country: "Estonia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+
+			// Finland (7 sites)
+			{name: "Fortress of Suomenlinna", lat: 60.1450, lon: 24.9884, country: "Finland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Suomenlinna"},
+			{name: "Old Rauma", lat: 61.1318, lon: 21.5051, country: "Finland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_Rauma"},
+			{name: "Petäjävesi Old Church", lat: 62.2553, lon: 25.1840, country: "Finland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pet%C3%A4j%C3%A4vesi_Old_Church"},
+			{name: "Verla Groundwood and Board Mill", lat: 60.7483, lon: 26.6433, country: "Finland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Verla"},
+			{name: "Bronze Age Burial Site of Sammallahdenmäki", lat: 61.0870, lon: 21.7313, country: "Finland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sammallahdenm%C3%A4ki"},
+			{name: "High Coast / Kvarken Archipelago", lat: 63.1000, lon: 21.6167, country: "Finland", type: "natural", wiki: "https://en.wikipedia.org/wiki/High_Coast"},
+			{name: "Struve Geodetic Arc", lat: 64.6833, lon: 24.5000, country: "Finland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+
+			// France (49 sites)
+			{name: "Belfries of Belgium and France", lat: 50.6372, lon: 3.0635, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Belfries_of_Belgium_and_France"},
+			{name: "Canal du Midi", lat: 43.3244, lon: 1.8769, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Canal_du_Midi"},
+			{name: "Cathedral of Notre-Dame, Former Abbey of Saint-Rémi and Palace of Tau, Reims", lat: 49.2533, lon: 4.0333, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Reims_Cathedral"},
+			{name: "Chaîne des Puys - Limagne fault tectonic arena", lat: 45.7833, lon: 2.9667, country: "France", type: "natural", wiki: "https://en.wikipedia.org/wiki/Cha%C3%AEne_des_Puys"},
+			{name: "Chartres Cathedral", lat: 48.4477, lon: 1.4872, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Chartres_Cathedral"},
+			{name: "Château de Chambord", lat: 47.6163, lon: 1.5153, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ch%C3%A2teau_de_Chambord"},
+			{name: "Cistercian Abbey of Fontenay", lat: 47.6356, lon: 4.4625, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fontenay_Abbey"},
+			{name: "Decorated Grottoes of the Vézère Valley", lat: 45.0444, lon: 1.0339, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_Sites_and_Decorated_Caves_of_the_V%C3%A9z%C3%A8re_Valley"},
+			{name: "Fortifications of Vauban", lat: 49.2109, lon: 0.2271, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fortifications_of_Vauban"},
+			{name: "From the Great Saltworks of Salins-les-Bains to the Royal Saltworks of Arc-et-Senans, the Production of Open-pan Salt", lat: 47.0272, lon: 5.8807, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Royal_Saltworks_at_Arc-et-Senans"},
+			{name: "Gulf of Porto: Calanche of Piana, Gulf of Girolata, Scandola Reserve", lat: 42.2784, lon: 8.5916, country: "France", type: "natural", wiki: "https://en.wikipedia.org/wiki/Gulf_of_Porto"},
+			{name: "Historic Fortified City of Carcassonne", lat: 43.2120, lon: 2.3537, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Carcassonne"},
+			{name: "Jurisdiction of Saint-Émilion", lat: 44.8914, lon: -0.1557, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Saint-%C3%89milion"},
+			{name: "Lagoons of New Caledonia", lat: -22.2764, lon: 166.4390, country: "France", type: "natural", wiki: "https://en.wikipedia.org/wiki/Lagoons_of_New_Caledonia"},
+			{name: "Mont-Saint-Michel and its Bay", lat: 48.6361, lon: -1.5114, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mont-Saint-Michel"},
+			{name: "Nord-Pas de Calais Mining Basin", lat: 50.4255, lon: 2.8229, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Nord-Pas_de_Calais_Mining_Basin"},
+			{name: "Palace and Park of Fontainebleau", lat: 48.4022, lon: 2.7016, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palace_of_Fontainebleau"},
+			{name: "Palace and Park of Versailles", lat: 48.8049, lon: 2.1204, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palace_of_Versailles"},
+			{name: "Place Stanislas, Place de la Carrière and Place d'Alliance in Nancy", lat: 48.6921, lon: 6.1847, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Place_Stanislas"},
+			{name: "Pont du Gard (Roman Aqueduct)", lat: 43.9475, lon: 4.5350, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pont_du_Gard"},
+			{name: "Prehistoric Pile dwellings around the Alps", lat: 46.9581, lon: 6.8664, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_pile_dwellings_around_the_Alps"},
+			{name: "Prehistoric Sites and Decorated Caves of the Vézère Valley", lat: 45.0389, lon: 1.0379, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_Sites_and_Decorated_Caves_of_the_V%C3%A9z%C3%A8re_Valley"},
+			{name: "Prehistoric Sites and Decorated Caves of the Vézère Valley", lat: 45.0389, lon: 1.0379, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_Sites_and_Decorated_Caves_of_the_V%C3%A9z%C3%A8re_Valley"},
+			{name: "Provins, Town of Medieval Fairs", lat: 48.5602, lon: 3.2999, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Provins"},
+			{name: "Roman Theatre and its Surroundings and the \"Triumphal Arch\" of Orange", lat: 44.1366, lon: 4.8071, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Roman_Theatre_of_Orange"},
+			{name: "The Causses and the Cévennes, Mediterranean Agro-pastoral Cultural Landscape", lat: 44.2667, lon: 3.5000, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Causses_and_the_C%C3%A9vennes,_Mediterranean_Agro-pastoral_Cultural_Landscape"},
+			{name: "The Climats, terroirs of Burgundy", lat: 47.0526, lon: 4.8383, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Climats,_terroirs_of_Burgundy"},
+			{name: "The Great Spa Towns of Europe", lat: 47.6522, lon: 6.8662, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+			{name: "The Loire Valley between Sully-sur-Loire and Chalonnes", lat: 47.2665, lon: 0.5089, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Loire_Valley"},
+			{name: "The Roman Theatre and its Surroundings and the 'Triumphal Arch' of Orange", lat: 44.1366, lon: 4.8071, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Roman_Theatre_of_Orange"},
+			{name: "Vézelay, Church and Hill", lat: 47.4640, lon: 3.7432, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/V%C3%A9zelay"},
+			{name: "Cistercian Abbey of Fontenay", lat: 47.6356, lon: 4.4625, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fontenay_Abbey"},
+			{name: "Fortifications of Vauban", lat: 49.2109, lon: 0.2271, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fortifications_of_Vauban"},
+			{name: "The Causses and the Cévennes, Mediterranean Agro-pastoral Cultural Landscape", lat: 44.2667, lon: 3.5000, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Causses_and_the_C%C3%A9vennes,_Mediterranean_Agro-pastoral_Cultural_Landscape"},
+			{name: "Chaîne des Puys - Limagne fault tectonic arena", lat: 45.7833, lon: 2.9667, country: "France", type: "natural", wiki: "https://en.wikipedia.org/wiki/Cha%C3%AEne_des_Puys"},
+			{name: "The French Austral Lands and Seas", lat: -49.3496, lon: 69.1673, country: "France", type: "natural", wiki: "https://en.wikipedia.org/wiki/French_Southern_and_Antarctic_Lands"},
+			{name: "Champagne Hillsides, Houses and Cellars", lat: 49.0465, lon: 3.9593, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Champagne_Hillsides,_Houses_and_Cellars"},
+			{name: "The Pitons, cirques and remparts of Reunion Island", lat: -21.1151, lon: 55.5364, country: "France", type: "natural", wiki: "https://en.wikipedia.org/wiki/Pitons,_cirques_and_remparts_of_Reunion_Island"},
+			{name: "Bordeaux, Port of the Moon", lat: 44.8378, lon: -0.5792, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bordeaux"},
+			{name: "Decorated Cave of Pont d’Arc, known as Grotte Chauvet-Pont d’Arc, Ardèche", lat: 44.3922, lon: 4.4141, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Chauvet_Cave"},
+			{name: "Taputapuātea", lat: -16.8333, lon: -151.3667, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Taputapu%C4%81tea"},
+			{name: "Le Havre, the City Rebuilt by Auguste Perret", lat: 49.4944, lon: 0.1079, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Le_Havre"},
+			{name: "Paris, Banks of the Seine", lat: 48.8566, lon: 2.3522, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Paris,_Banks_of_the_Seine"},
+			{name: "Strasbourg – Grande île and Neustadt", lat: 48.5734, lon: 7.7521, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Strasbourg_Grande_%C3%8Ele"},
+			{name: "Mont Perdu in the Pyrenees", lat: 42.6833, lon: 0.0333, country: "France", type: "natural", wiki: "https://en.wikipedia.org/wiki/Pyrenees"},
+			{name: "Prehistoric Sites and Decorated Caves of the Vézère Valley", lat: 45.0389, lon: 1.0379, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_Sites_and_Decorated_Caves_of_the_V%C3%A9z%C3%A8re_Valley"},
+			{name: "Château de Chambord", lat: 47.6163, lon: 1.5153, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ch%C3%A2teau_de_Chambord"},
+			{name: "Chaîne des Puys - Limagne fault tectonic arena", lat: 45.7833, lon: 2.9667, country: "France", type: "natural", wiki: "https://en.wikipedia.org/wiki/Cha%C3%AEne_des_Puys"},
+			{name: "Château de Versailles and the Trianon Palaces", lat: 48.8049, lon: 2.1204, country: "France", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palace_of_Versailles"},
+
+			// Georgia (4 sites)
+			{name: "Historical Monuments of Mtskheta", lat: 41.8455, lon: 44.7186, country: "Georgia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historical_Monuments_of_Mtskheta"},
+			{name: "Upper Svaneti", lat: 43.0170, lon: 42.8685, country: "Georgia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Svaneti"},
+			{name: "Gelati Monastery", lat: 42.2942, lon: 42.7161, country: "Georgia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Gelati_Monastery"},
+			{name: "Colchic Rainforests and Wetlands", lat: 42.3328, lon: 41.8442, country: "Georgia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Colchic_Rainforests_and_Wetlands"},
+
+			// Germany (51 sites)
+			{name: "Aachen Cathedral", lat: 50.7748, lon: 6.0839, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Aachen_Cathedral"},
+			{name: "Speyer Cathedral", lat: 49.3177, lon: 8.4412, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Speyer_Cathedral"},
+			{name: "Würzburg Residence with the Court Gardens and Residence Square", lat: 49.7913, lon: 9.9534, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/W%C3%BCrzburg_Residence"},
+			{name: "Pilgrimage Church of Wies", lat: 47.6749, lon: 10.9001, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wieskirche"},
+			{name: "Castles of Augustusburg and Falkenlust at Brühl", lat: 50.8309, lon: 6.9056, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Augustusburg_and_Falkenlust_Palaces,_Br%C3%BChl"},
+			{name: "St Mary's Cathedral and St Michael's Church at Hildesheim", lat: 52.1500, lon: 9.9513, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Hildesheim_Cathedral"},
+			{name: "Roman Monuments, Cathedral of St Peter and Church of Our Lady in Trier", lat: 49.7573, lon: 6.6424, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Trier"},
+			{name: "Town of Bamberg", lat: 49.8988, lon: 10.9028, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bamberg"},
+			{name: "Cologne Cathedral", lat: 50.9413, lon: 6.9584, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Cologne_Cathedral"},
+			{name: "The Bauhaus and its Sites in Weimar, Dessau and Bernau", lat: 51.8409, lon: 12.2436, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bauhaus_and_its_Sites_in_Weimar,_Dessau_and_Bernau"},
+			{name: "Luther Memorials in Eisleben and Wittenberg", lat: 51.8679, lon: 11.0587, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Luther_Memorials_in_Eisleben_and_Wittenberg"},
+			{name: "Völklingen Ironworks", lat: 49.2486, lon: 6.8401, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/V%C3%B6lklingen_Ironworks"},
+			{name: "Mines of Rammelsberg, Historic Town of Goslar and Upper Harz Water Management System", lat: 51.8995, lon: 10.4261, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mines_of_Rammelsberg"},
+			{name: "Maulbronn Monastery Complex", lat: 49.0004, lon: 8.8059, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Maulbronn_Monastery"},
+			{name: "Town Hall and Roland on the Marketplace of Bremen", lat: 53.0758, lon: 8.8072, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Town_Hall_and_Roland_on_the_Marketplace_of_Bremen"},
+			{name: "Museumsinsel (Museum Island), Berlin", lat: 52.5163, lon: 13.4016, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Museum_Island"},
+			{name: "Wartburg Castle", lat: 50.9669, lon: 10.3067, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wartburg"},
+			{name: "Garden Kingdom of Dessau-Wörlitz", lat: 51.8369, lon: 12.4058, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Garden_Kingdom_of_Dessau-W%C3%B6rlitz"},
+			{name: "Monastic Island of Reichenau", lat: 47.6973, lon: 9.0667, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Reichenau_Island"},
+			{name: "Zollverein Coal Mine Industrial Complex in Essen", lat: 51.4879, lon: 7.0454, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Zollverein_Coal_Mine_Industrial_Complex"},
+			{name: "Messel Pit Fossil Site", lat: 49.9233, lon: 8.7656, country: "Germany", type: "natural", wiki: "https://en.wikipedia.org/wiki/Messel_Pit_Fossil_Site"},
+			{name: "Wadden Sea", lat: 53.5000, lon: 8.1364, country: "Germany", type: "natural", wiki: "https://en.wikipedia.org/wiki/Wadden_Sea"},
+			{name: "Berlin Modernism Housing Estates", lat: 52.4824, lon: 13.3328, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Berlin_Modernism_Housing_Estates"},
+			{name: "Fagus Factory in Alfeld", lat: 51.9872, lon: 9.8225, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fagus_Factory"},
+			{name: "Prehistoric Pile dwellings around the Alps", lat: 47.5232, lon: 9.2433, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_pile_dwellings_around_the_Alps"},
+			{name: "Margravial Opera House Bayreuth", lat: 49.9427, lon: 11.5765, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Margravial_Opera_House"},
+			{name: "Carolingian Westwork and Civitas Corvey", lat: 51.7875, lon: 9.4042, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Corvey_Abbey"},
+			{name: "Speicherstadt and Kontorhaus District with Chilehaus", lat: 53.5450, lon: 9.9930, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Speicherstadt"},
+			{name: "The Caves and Ice Age Art in the Swabian Jura", lat: 48.3983, lon: 9.7479, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Caves_and_Ice_Age_Art_in_the_Swabian_Jura"},
+			{name: "Archaeological Border Complex of Hedeby and the Danevirke", lat: 54.5073, lon: 9.5481, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Archaeological_Border_Complex_of_Hedeby_and_the_Danevirke"},
+			{name: "Augsburg Water Management System", lat: 48.3705, lon: 10.8985, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Augsburg_Water_Management_System"},
+			{name: "The Great Spa Towns of Europe", lat: 50.0505, lon: 12.3627, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+			{name: "Mathildenhöhe Darmstadt", lat: 49.8728, lon: 8.6675, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mathildenh%C3%B6he"},
+			{name: "Frontiers of the Roman Empire - The Danube Limes", lat: 48.1333, lon: 11.5667, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Frontiers_of_the_Roman_Empire"},
+			{name: "Old town of Regensburg with Stadtamhof", lat: 49.0195, lon: 12.0976, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_Town_of_Regensburg_with_Stadtamhof"},
+			{name: "Frontiers of the Roman Empire (Limes Germanicus)", lat: 50.1833, lon: 9.1500, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Frontiers_of_the_Roman_Empire"},
+			{name: "Primeval Beech Forests of the Carpathians and Other Regions of Europe", lat: 53.0790, lon: 13.2691, country: "Germany", type: "natural", wiki: "https://en.wikipedia.org/wiki/Primeval_Beech_Forests_of_the_Carpathians_and_Other_Regions_of_Europe"},
+			{name: "Frontiers of the Roman Empire – Upper German-Raetian Limes", lat: 50.2167, lon: 9.4500, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Upper_Germanic-Rhaetian_Limes"},
+			{name: "Palaces and Parks of Potsdam and Berlin", lat: 52.4000, lon: 13.0300, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palaces_and_Parks_of_Potsdam_and_Berlin"},
+			{name: "Hanseatic City of Lübeck", lat: 53.8664, lon: 10.6866, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Hanseatic_City_of_L%C3%BCbeck"},
+			{name: "Fossil Site of Messel Pit", lat: 49.9167, lon: 8.7500, country: "Germany", type: "natural", wiki: "https://en.wikipedia.org/wiki/Messel_Pit_Fossil_Site"},
+			{name: "Primeval Beech Forests of the Carpathians and Other Regions of Europe", lat: 53.0790, lon: 13.2691, country: "Germany", type: "natural", wiki: "https://en.wikipedia.org/wiki/Primeval_Beech_Forests_of_the_Carpathians_and_Other_Regions_of_Europe"},
+			{name: "Würzburg Residence with the Court Gardens and Residence Square", lat: 49.7913, lon: 9.9534, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/W%C3%BCrzburg_Residence"},
+			{name: "Cologne Cathedral", lat: 50.9413, lon: 6.9584, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Cologne_Cathedral"},
+			{name: "Roman Monuments, Cathedral of St Peter and Church of Our Lady in Trier", lat: 49.7573, lon: 6.6424, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Trier"},
+			{name: "Mines of Rammelsberg, Historic Town of Goslar and Upper Harz Water Management System", lat: 51.8995, lon: 10.4261, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mines_of_Rammelsberg"},
+			{name: "Völklingen Ironworks", lat: 49.2486, lon: 6.8401, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/V%C3%B6lklingen_Ironworks"},
+			{name: "Abbey and Altenmünster of Lorsch", lat: 49.6531, lon: 8.5650, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Lorsch_Abbey"},
+			{name: "Frontiers of the Roman Empire – The Lower German Limes", lat: 51.8467, lon: 5.8706, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Lower_Germanic_Limes"},
+			{name: "Cathedral of St Mary and St Michael at Hildesheim", lat: 52.1500, lon: 9.9513, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Hildesheim_Cathedral"},
+			{name: "Speyer Cathedral", lat: 49.3177, lon: 8.4412, country: "Germany", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Speyer_Cathedral"},
+
+			// Greece (18 sites)
+			{name: "Acropolis, Athens", lat: 37.9715, lon: 23.7257, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Acropolis_of_Athens"},
+			{name: "Archaeological Site of Aigai (modern Vergina)", lat: 40.4853, lon: 22.3189, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Aigai_(modern_Vergina)"},
+			{name: "Archaeological Site of Delphi", lat: 38.4828, lon: 22.5010, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Delphi"},
+			{name: "Archaeological Site of Mystras", lat: 37.0739, lon: 22.3776, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mystras"},
+			{name: "Archaeological Site of Olympia", lat: 37.6370, lon: 21.6269, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Olympia,_Greece"},
+			{name: "Delos", lat: 37.3964, lon: 25.2708, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Delos"},
+			{name: "Medieval City of Rhodes", lat: 36.4467, lon: 28.2249, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Medieval_City_of_Rhodes"},
+			{name: "Monasteries of Daphni, Hosios Loukas and Nea Moni of Chios", lat: 38.4000, lon: 22.7500, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Hosios_Loukas"},
+			{name: "Old Town of Corfu", lat: 39.6243, lon: 19.9204, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_Town_of_Corfu"},
+			{name: "Paleochristian and Byzantine Monuments of Thessalonika", lat: 40.6401, lon: 22.9444, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Paleochristian_and_Byzantine_Monuments_of_Thessalonika"},
+			{name: "Pythagoreion and Heraion of Samos", lat: 37.6931, lon: 26.8506, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pythagoreion_and_Heraion_of_Samos"},
+			{name: "Sanctuary of Asklepios at Epidaurus", lat: 37.5964, lon: 23.0757, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sanctuary_of_Asclepius_at_Epidaurus"},
+			{name: "Temple of Apollo Epicurius at Bassae", lat: 37.4306, lon: 21.8956, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Temple_of_Apollo_Epicurius"},
+			{name: "Meteora", lat: 39.7217, lon: 21.6319, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Meteora"},
+			{name: "Mount Athos", lat: 40.1629, lon: 24.3281, country: "Greece", type: "mixed", wiki: "https://en.wikipedia.org/wiki/Mount_Athos"},
+			{name: "Archaeological Sites of Philippi", lat: 41.0167, lon: 24.2833, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Philippi"},
+			{name: "The Historic Centre (Chorá) with the Monastery of Saint John the Theologian and the Cave of the Apocalypse on the Island of Pátmos", lat: 37.3097, lon: 26.5464, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Patmos"},
+			{name: "Archaeological Site of Tiryns", lat: 37.5875, lon: 22.8042, country: "Greece", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tiryns"},
+
+			// Hungary (8 sites)
+			{name: "Budapest, including the Banks of the Danube, the Buda Castle Quarter and Andrássy Avenue", lat: 47.4979, lon: 19.0402, country: "Hungary", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Budapest"},
+			{name: "Old Village of Hollókő and its Surroundings", lat: 47.9956, lon: 19.5963, country: "Hungary", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Holl%C3%B3k%C5%91"},
+			{name: "Caves of Aggtelek Karst and Slovak Karst", lat: 48.4672, lon: 20.5186, country: "Hungary", type: "natural", wiki: "https://en.wikipedia.org/wiki/Caves_of_Aggtelek_Karst_and_Slovak_Karst"},
+			{name: "Millenary Benedictine Abbey of Pannonhalma and its Natural Environment", lat: 47.5515, lon: 17.7493, country: "Hungary", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pannonhalma_Archabbey"},
+			{name: "Hortobágy National Park - the Puszta", lat: 47.5785, lon: 21.1683, country: "Hungary", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Hortob%C3%A1gy_National_Park"},
+			{name: "Early Christian Necropolis of Pécs (Sopianae)", lat: 46.0765, lon: 18.2281, country: "Hungary", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Early_Christian_Necropolis_of_P%C3%A9cs"},
+			{name: "Fertö / Neusiedlersee Cultural Landscape", lat: 47.6833, lon: 16.7667, country: "Hungary", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fert%C5%91/Neusiedlersee_Cultural_Landscape"},
+			{name: "Tokaj Wine Region Historic Cultural Landscape", lat: 48.1114, lon: 21.4070, country: "Hungary", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tokaj_Wine_Region_Historic_Cultural_Landscape"},
+
+			// Iceland (3 sites)
+			{name: "Þingvellir National Park", lat: 64.2559, lon: -21.1308, country: "Iceland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/%C3%9Eingvellir"},
+			{name: "Surtsey", lat: 63.3033, lon: -20.6056, country: "Iceland", type: "natural", wiki: "https://en.wikipedia.org/wiki/Surtsey"},
+			{name: "Vatnajökull National Park - Dynamic Nature of Fire and Ice", lat: 64.4170, lon: -15.0000, country: "Iceland", type: "natural", wiki: "https://en.wikipedia.org/wiki/Vatnaj%C3%B6kull_National_Park"},
+
+			// Ireland (2 sites)
+			{name: "Brú na Bóinne - Archaeological Ensemble of the Bend of the Boyne", lat: 53.6947, lon: -6.4477, country: "Ireland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Br%C3%BA_na_B%C3%B3inne"},
+			{name: "Skellig Michael", lat: 51.7719, lon: -10.5400, country: "Ireland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Skellig_Michael"},
+
+			// Italy (58 sites)
+			{name: "Arab-Norman Palermo and the Cathedral Churches of Cefalù and Monreale", lat: 38.1157, lon: 13.3615, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Arab-Norman_Palermo_and_the_Cathedral_Churches_of_Cefal%C3%B9_and_Monreale"},
+			{name: "Archaeological Area and the Patriarchal Basilica of Aquileia", lat: 45.7667, lon: 13.3667, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Aquileia"},
+			{name: "Archaeological Areas of Pompei, Herculaneum and Torre Annunziata", lat: 40.7500, lon: 14.4833, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pompeii"},
+			{name: "Archaeological Site of Aquileia", lat: 45.7667, lon: 13.3667, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Aquileia"},
+			{name: "Archaeological Site of Su Nuraxi di Barumini", lat: 39.7039, lon: 8.9875, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Su_Nuraxi_di_Barumini"},
+			{name: "Assisi, the Basilica of San Francesco and Other Franciscan Sites", lat: 43.0707, lon: 12.6161, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Assisi"},
+			{name: "Castel del Monte", lat: 41.0858, lon: 16.2708, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Castel_del_Monte"},
+			{name: "Cilento and Vallo di Diano National Park with the Archaeological Sites of Paestum and Velia, and the Certosa di Padula", lat: 40.1574, lon: 15.2737, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Cilento_and_Vallo_di_Diano_National_Park"},
+			{name: "City of Vicenza and the Palladian Villas of the Veneto", lat: 45.5470, lon: 11.5456, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Vicenza"},
+			{name: "Crespi d'Adda", lat: 45.6031, lon: 9.5417, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Crespi_d%27Adda"},
+			{name: "Early Christian Monuments of Ravenna", lat: 44.4184, lon: 12.2035, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Early_Christian_Monuments_of_Ravenna"},
+			{name: "Etruscan Necropolises of Cerveteri and Tarquinia", lat: 42.0000, lon: 12.1000, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Etruscan_Necropolises_of_Cerveteri_and_Tarquinia"},
+			{name: "Historic Centre of Florence", lat: 43.7696, lon: 11.2558, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Florence"},
+			{name: "Historic Centre of Genoa: Le Strade Nuove and the System of the Palazzi dei Rolli", lat: 44.4071, lon: 8.9340, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palazzi_dei_Rolli"},
+			{name: "Historic Centre of Naples", lat: 40.8518, lon: 14.2681, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Naples"},
+			{name: "Historic Centre of Rome, the Properties of the Holy See in that City Enjoying Extraterritorial Rights and San Paolo Fuori le Mura", lat: 41.9028, lon: 12.4964, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Rome"},
+			{name: "Historic Centre of San Gimignano", lat: 43.4670, lon: 11.0420, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/San_Gimignano"},
+			{name: "Historic Centre of Siena", lat: 43.3183, lon: 11.3317, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Siena"},
+			{name: "Historic Centre of Urbino", lat: 43.7257, lon: 12.6362, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Urbino"},
+			{name: "Historic Centre of Verona", lat: 45.4386, lon: 10.9928, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Verona"},
+			{name: "Historic Centre of the City of Pienza", lat: 43.0772, lon: 11.6780, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pienza"},
+			{name: "Industrial Heritage of Crespi d'Adda", lat: 45.6031, lon: 9.5417, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Crespi_d%27Adda"},
+			{name: "Ivrea, Industrial City of the 20th Century", lat: 45.4667, lon: 7.8800, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ivrea"},
+			{name: "Late Baroque Towns of the Val di Noto (South-Eastern Sicily)", lat: 36.8916, lon: 15.0732, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Late_Baroque_Towns_of_the_Val_di_Noto_(South-Eastern_Sicily)"},
+			{name: "Le Colline del Prosecco di Conegliano e Valdobbiadene", lat: 45.9333, lon: 12.2833, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Le_Colline_del_Prosecco_di_Conegliano_e_Valdobbiadene"},
+			{name: "Longobards in Italy, Places of Power", lat: 41.4667, lon: 14.2167, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Longobards_in_Italy,_Places_of_Power"},
+			{name: "Medici Villas and Gardens in Tuscany", lat: 43.7829, lon: 11.2554, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Medici_Villas_and_Gardens_in_Tuscany"},
+			{name: "Monte San Giorgio", lat: 45.8917, lon: 8.9647, country: "Italy", type: "natural", wiki: "https://en.wikipedia.org/wiki/Monte_San_Giorgio"},
+			{name: "Mount Etna", lat: 37.7510, lon: 14.9934, country: "Italy", type: "natural", wiki: "https://en.wikipedia.org/wiki/Mount_Etna"},
+			{name: "Padua's 14th-century Fresco Cycles", lat: 45.4064, lon: 11.8768, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Padua%27s_14th-century_Fresco_Cycles"},
+			{name: "Piazza del Duomo, Pisa", lat: 43.7229, lon: 10.3966, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Piazza_del_Duomo,_Pisa"},
+			{name: "Piazza del Duomo, Pisa", lat: 43.7230, lon: 10.3966, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Piazza_del_Duomo,_Pisa"},
+			{name: "Piedmont Vineyards: Langhe-Roero and Monferrato", lat: 44.7000, lon: 8.1333, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Langhe"},
+			{name: "Portovenere, Cinque Terre, and the Islands (Palmaria, Tino, and Tinetto)", lat: 44.1047, lon: 9.8317, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Cinque_Terre"},
+			{name: "Prehistoric Pile Dwellings around the Alps", lat: 45.9300, lon: 8.5600, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_pile_dwellings_around_the_Alps"},
+			{name: "Rhaetian Railway in the Albula / Bernina Landscapes", lat: 46.5325, lon: 9.7877, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Rhaetian_Railway_in_the_Albula/Bernina_Landscapes"},
+			{name: "Rock Drawings in Valcamonica", lat: 45.8319, lon: 10.2965, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Valcamonica"},
+			{name: "Royal Palace of Caserta with the Park, the Aqueduct of Vanvitelli, and the San Leucio Complex", lat: 41.0747, lon: 14.3275, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Royal_Palace_of_Caserta"},
+			{name: "Sacri Monti of Piedmont and Lombardy", lat: 45.8924, lon: 8.4219, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sacri_Monti_of_Piedmont_and_Lombardy"},
+			{name: "Su Nuraxi di Barumini", lat: 39.7054, lon: 8.9932, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Su_Nuraxi_di_Barumini"},
+			{name: "Syracuse and the Rocky Necropolis of Pantalica", lat: 37.0755, lon: 15.2866, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Syracuse"},
+			{name: "The Botanical Garden (Orto Botanico), Padua", lat: 45.3989, lon: 11.8802, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Orto_Botanico_di_Padova"},
+			{name: "The Cathedral, Torre Civica and Piazza Grande, Modena", lat: 44.6461, lon: 10.9253, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Duomo_di_Modena"},
+			{name: "The Dolomites", lat: 46.4333, lon: 11.8500, country: "Italy", type: "natural", wiki: "https://en.wikipedia.org/wiki/Dolomites"},
+			{name: "The Great Spa Towns of Europe", lat: 45.9450, lon: 9.2295, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+			{name: "The Royal Palace of Caserta with the Park, the Aqueduct of Vanvitelli, and the San Leucio Complex", lat: 41.0700, lon: 14.3300, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Royal_Palace_of_Caserta"},
+			{name: "The Sassi and the Park of the Rupestrian Churches of Matera", lat: 40.6672, lon: 16.6042, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Matera"},
+			{name: "The Trulli of Alberobello", lat: 40.7833, lon: 17.2333, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Trulli"},
+			{name: "Val d'Orcia", lat: 43.0550, lon: 11.6161, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Val_d%27Orcia"},
+			{name: "Valcamonica Rock Drawings", lat: 45.8327, lon: 10.2947, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Valcamonica"},
+			{name: "Venetian Works of Defence between the 16th and 17th Centuries", lat: 45.4333, lon: 12.3167, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Venetian_Works_of_Defence_between_the_16th_and_17th_Centuries"},
+			{name: "Venice and its Lagoon", lat: 45.4408, lon: 12.3155, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Venice"},
+			{name: "Villa Adriana (Tivoli)", lat: 41.9447, lon: 12.7762, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Hadrian%27s_Villa"},
+			{name: "Villa Romana del Casale", lat: 37.3667, lon: 14.3333, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Villa_Romana_del_Casale"},
+			{name: "Villa d'Este, Tivoli", lat: 41.9667, lon: 12.8000, country: "Italy", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Villa_d%27Este"},
+
+			// Latvia (2 sites)
+			{name: "Historic Centre of Riga", lat: 56.9496, lon: 24.1052, country: "Latvia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Riga"},
+			{name: "Struve Geodetic Arc", lat: 57.8972, lon: 25.3011, country: "Latvia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+
+			// Lithuania (4 sites)
+			{name: "Vilnius Historic Centre", lat: 54.6872, lon: 25.2797, country: "Lithuania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Vilnius"},
+			{name: "Curonian Spit", lat: 55.2783, lon: 20.9714, country: "Lithuania", type: "natural", wiki: "https://en.wikipedia.org/wiki/Curonian_Spit"},
+			{name: "Kernavė Archaeological Site (Cultural Reserve of Kernavė)", lat: 54.8864, lon: 24.8472, country: "Lithuania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Kernav%C4%97"},
+			{name: "Struve Geodetic Arc", lat: 54.9054, lon: 23.8861, country: "Lithuania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+
+			// Luxenbourg (1 site)
+			{name: "City of Luxembourg: its Old Quarters and Fortifications", lat: 49.6117, lon: 6.1319, country: "Luxembourg", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Luxembourg_City"},
+
+			// Malta (3 sites)
+			{name: "City of Valletta", lat: 35.8997, lon: 14.5146, country: "Malta", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Valletta"},
+			{name: "Megalithic Temples of Malta", lat: 35.8326, lon: 14.5558, country: "Malta", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Megalithic_Temples_of_Malta"},
+			{name: "Ħal Saflieni Hypogeum", lat: 35.8747, lon: 14.5094, country: "Malta", type: "cultural", wiki: "https://en.wikipedia.org/wiki/%C4%A6al-Saflieni_Hypogeum"},
+
+			// Moldova (1 site)
+			{name: "Struve Geodetic Arc", lat: 47.4451, lon: 28.4648, country: "Moldova", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+
+			// Monaco (1 site)
+			{name: "The Great Spa Towns of Europe", lat: 43.7333, lon: 7.4167, country: "Monaco", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+
+			// Montenegro (4 sites)
+			{name: "Natural and Culturo-Historical Region of Kotor", lat: 42.4247, lon: 18.7712, country: "Montenegro", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Kotor"},
+			{name: "Durmitor National Park", lat: 43.1400, lon: 19.1600, country: "Montenegro", type: "natural", wiki: "https://en.wikipedia.org/wiki/Durmitor_National_Park"},
+			{name: "Venetian Works of Defence between 15th and 17th Centuries: Stato da Terra – Western Stato da Mar", lat: 42.4247, lon: 18.7712, country: "Montenegro", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Venetian_Works_of_Defence_between_the_15th_and_17th_centuries"},
+			{name: "Stećci Medieval Tombstone Graveyards", lat: 43.1457, lon: 18.9716, country: "Montenegro", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ste%C4%87ci_Medieval_Tombstone_Graveyards"},
+
+			// The Netherlands (12 sites)
+			{name: "Schokland and Surroundings", lat: 52.6357, lon: 5.7761, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Schokland"},
+			{name: "Defence Line of Amsterdam", lat: 52.3740, lon: 4.9015, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Defence_Line_of_Amsterdam"},
+			{name: "Historic Area of Willemstad, Inner City and Harbour, Curaçao", lat: 12.1224, lon: -68.8824, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Willemstad"},
+			{name: "Ir.D.F. Woudagemaal (D.F. Wouda Steam Pumping Station)", lat: 52.8470, lon: 5.7074, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wouda_Steam_Pumping_Station"},
+			{name: "Mill Network at Kinderdijk-Elshout", lat: 51.8838, lon: 4.6482, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Kinderdijk"},
+			{name: "Rietveld Schröder House", lat: 52.0856, lon: 5.1427, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Rietveld_Schr%C3%B6der_House"},
+			{name: "Beemster Polder", lat: 52.5240, lon: 4.9186, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Beemster"},
+			{name: "Wadden Sea", lat: 53.5000, lon: 5.5000, country: "Netherlands", type: "natural", wiki: "https://en.wikipedia.org/wiki/Wadden_Sea"},
+			{name: "Van Nelle Factory", lat: 51.9283, lon: 4.4312, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Van_Nelle_Factory"},
+			{name: "Colonies of Benevolence", lat: 52.9769, lon: 6.1437, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Colonies_of_Benevolence"},
+			{name: "Lower Germanic Limes", lat: 51.8550, lon: 5.8767, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Lower_Germanic_Limes"},
+			{name: "The Great Spa Towns of Europe", lat: 51.8126, lon: 5.8382, country: "Netherlands", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+
+			// Northern Macedonia (1 site)
+			{name: "Natural and Cultural Heritage of the Ohrid Region", lat: 41.1130, lon: 20.8016, country: "North Macedonia", type: "mixed", wiki: "https://en.wikipedia.org/wiki/Natural_and_Cultural_Heritage_of_the_Ohrid_Region"},
+
+			// Norway (8 sites)
+			{name: "Bryggen", lat: 60.3971, lon: 5.3246, country: "Norway", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bryggen"},
+			{name: "Urnes Stave Church", lat: 61.3028, lon: 7.3197, country: "Norway", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Urnes_Stave_Church"},
+			{name: "Rjukan–Notodden Industrial Heritage Site", lat: 59.8796, lon: 8.5912, country: "Norway", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Rjukan%E2%80%93Notodden_Industrial_Heritage_Site"},
+			{name: "Vegaøyan – The Vega Archipelago", lat: 65.6333, lon: 11.9333, country: "Norway", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Vega_Archipelago"},
+			{name: "Struve Geodetic Arc", lat: 70.6627, lon: 23.6821, country: "Norway", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+			{name: "Rock Art of Alta", lat: 69.9794, lon: 23.2716, country: "Norway", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Rock_art_of_Alta"},
+			{name: "West Norwegian Fjords – Geirangerfjord and Nærøyfjord", lat: 62.1040, lon: 7.0931, country: "Norway", type: "natural", wiki: "https://en.wikipedia.org/wiki/West_Norwegian_Fjords"},
+			{name: "København's Meridian (Struve Geodetic Arc)", lat: 60.6333, lon: 11.4333, country: "Norway", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+
+			// Poland (16 sites)
+			{name: "Auschwitz Birkenau German Nazi Concentration and Extermination Camp (1940–1945)", lat: 50.0354, lon: 19.1783, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Auschwitz_concentration_camp"},
+			{name: "Historic Centre of Kraków", lat: 50.0614, lon: 19.9372, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_Krak%C3%B3w"},
+			{name: "Wieliczka and Bochnia Royal Salt Mines", lat: 49.9864, lon: 20.0567, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine"},
+			{name: "Old City of Zamość", lat: 50.7233, lon: 23.2517, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_City_of_Zamo%C5%9B%C4%87"},
+			{name: "Medieval Town of Toruń", lat: 53.0138, lon: 18.5984, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Toru%C5%84"},
+			{name: "Białowieża Forest", lat: 52.7000, lon: 23.8667, country: "Poland", type: "natural", wiki: "https://en.wikipedia.org/wiki/Bia%C5%82owie%C5%BCa_Forest"},
+			{name: "Warsaw Old Town", lat: 52.2495, lon: 21.0126, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Warsaw_Old_Town"},
+			{name: "Castle of the Teutonic Order in Malbork", lat: 54.0497, lon: 19.0297, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Malbork_Castle"},
+			{name: "Kalwaria Zebrzydowska: the Mannerist Architectural and Park Landscape Complex and Pilgrimage Park", lat: 49.8667, lon: 19.6833, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Kalwaria_Zebrzydowska"},
+			{name: "Churches of Peace in Jawor and Świdnica", lat: 51.0500, lon: 16.2667, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Churches_of_Peace"},
+			{name: "Wooden Churches of Southern Lesser Poland", lat: 49.5000, lon: 20.5000, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wooden_churches_of_southern_Lesser_Poland"},
+			{name: "Muskauer Park / Park Mużakowski", lat: 51.5539, lon: 14.7189, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Muskauer_Park"},
+			{name: "Centennial Hall in Wrocław", lat: 51.1060, lon: 17.0772, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Centennial_Hall"},
+			{name: "Wooden Tserkvas of the Carpathian Region in Poland and Ukraine", lat: 49.4090, lon: 21.2078, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wooden_Tserkvas_of_the_Carpathian_Region"},
+			{name: "Tarnowskie Góry Lead-Silver-Zinc Mine and its Underground Water Management System", lat: 50.4410, lon: 18.8610, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tarnowskie_G%C3%B3ry_Lead-Silver-Zinc_Mine"},
+			{name: "Krzemionki Prehistoric Striped Flint Mining Region", lat: 50.9400, lon: 21.4725, country: "Poland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Krzemionki"},
+
+			// Portugal (17 sites)
+			{name: "Central Zone of the Town of Angra do Heroismo in the Azores", lat: 38.6558, lon: -27.2208, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Angra_do_Hero%C3%ADsmo"},
+			{name: "Monastery of Batalha", lat: 39.6591, lon: -8.8259, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Batalha_Monastery"},
+			{name: "Convent of Christ in Tomar", lat: 39.6069, lon: -8.4111, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Convent_of_Christ_(Tomar)"},
+			{name: "Monastery of the Hieronymites and Tower of Belém in Lisbon", lat: 38.6974, lon: -9.2065, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bel%C3%A9m_Tower"},
+			{name: "Historic Centre of Évora", lat: 38.5717, lon: -7.9135, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/%C3%89vora"},
+			{name: "Monastery of Alcobaça", lat: 39.5483, lon: -8.9775, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Alcoba%C3%A7a_Monastery"},
+			{name: "Cultural Landscape of Sintra", lat: 38.8000, lon: -9.3833, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sintra"},
+			{name: "Historic Centre of Oporto, Luiz I Bridge and Monastery of Serra do Pilar", lat: 41.1496, lon: -8.6110, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Porto"},
+			{name: "Prehistoric Rock Art Sites in the Côa Valley and Siega Verde", lat: 41.0833, lon: -7.0500, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_Rock_Art_Sites_in_the_C%C3%B4a_Valley_and_Siega_Verde"},
+			{name: "Laurisilva of Madeira", lat: 32.7333, lon: -17.0000, country: "Portugal", type: "natural", wiki: "https://en.wikipedia.org/wiki/Madeira"},
+			{name: "Alto Douro Wine Region", lat: 41.1879, lon: -7.8044, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Alto_Douro_Wine_Region"},
+			{name: "Landscape of the Pico Island Vineyard Culture", lat: 38.5167, lon: -28.4167, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pico_Island"},
+			{name: "Garrison Border Town of Elvas and its Fortifications", lat: 38.8817, lon: -7.1621, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Elvas"},
+			{name: "University of Coimbra – Alta and Sofia", lat: 40.2075, lon: -8.4269, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/University_of_Coimbra"},
+			{name: "Royal Building of Mafra – Palace, Basilica, Convent, Cerco Garden and Hunting Park", lat: 38.9361, lon: -9.3267, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palace_of_Mafra"},
+			{name: "Sanctuary of Bom Jesus do Monte in Braga", lat: 41.5544, lon: -8.3803, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sanctuary_of_Bom_Jesus_do_Monte"},
+			{name: "The Great Spa Towns of Europe", lat: 38.7605, lon: -9.1110, country: "Portugal", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+
+			// Romania (8 sites)
+			{name: "Danube Delta", lat: 45.0824, lon: 29.5056, country: "Romania", type: "natural", wiki: "https://en.wikipedia.org/wiki/Danube_Delta"},
+			{name: "Churches of Moldavia", lat: 47.6333, lon: 26.2500, country: "Romania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Churches_of_Moldavia"},
+			{name: "Monastery of Horezu", lat: 45.1433, lon: 23.9867, country: "Romania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Horezu_Monastery"},
+			{name: "Villages with Fortified Churches in Transylvania", lat: 46.1167, lon: 24.6000, country: "Romania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fortified_churches_in_Transylvania"},
+			{name: "Dacian Fortresses of the Orăștie Mountains", lat: 45.6267, lon: 23.3000, country: "Romania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Dacian_Fortresses_of_the_Or%C4%83%C8%99tie_Mountains"},
+			{name: "Historic Centre of Sighișoara", lat: 46.2167, lon: 24.8000, country: "Romania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sighi%C8%99oara"},
+			{name: "Wooden Churches of Maramureș", lat: 47.7000, lon: 23.8833, country: "Romania", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wooden_churches_of_Maramure%C8%99"},
+			{name: "Ancient and Primeval Beech Forests of the Carpathians and Other Regions of Europe", lat: 45.6667, lon: 25.6000, country: "Romania", type: "natural", wiki: "https://en.wikipedia.org/wiki/Primeval_Beech_Forests_of_the_Carpathians_and_Other_Regions_of_Europe"},
+
+
+			// Russia (30 sites)
+			{name: "Historic Centre of Saint Petersburg and Related Groups of Monuments", lat: 59.9343, lon: 30.3351, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Saint_Petersburg"},
+			{name: "Kremlin and Red Square, Moscow", lat: 55.7516, lon: 37.6174, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Moscow_Kremlin"},
+			{name: "Historic Monuments of Novgorod and Surroundings", lat: 58.5200, lon: 31.2711, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Novgorod"},
+			{name: "Cultural and Historic Ensemble of the Solovetsky Islands", lat: 65.1111, lon: 35.0500, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Solovetsky_Islands"},
+			{name: "White Monuments of Vladimir and Suzdal", lat: 56.1301, lon: 40.4086, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/White_Monuments_of_Vladimir_and_Suzdal"},
+			{name: "Architectural Ensemble of the Trinity Sergius Lavra in Sergiev Posad", lat: 56.3000, lon: 38.1333, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Trinity_Lavra_of_Sergius"},
+			{name: "Church of the Ascension, Kolomenskoye", lat: 55.6753, lon: 37.6681, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Church_of_the_Ascension,_Kolomenskoye"},
+			{name: "Citadel, Ancient City and Fortress Buildings of Derbent", lat: 42.0667, lon: 48.2900, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Derbent"},
+			{name: "Historic and Architectural Complex of the Kazan Kremlin", lat: 55.7986, lon: 49.1050, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Kazan_Kremlin"},
+			{name: "Ensemble of the Ferapontov Monastery", lat: 59.9533, lon: 39.4172, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ferapontov_Monastery"},
+			{name: "Golden Mountains of Altai", lat: 50.5500, lon: 86.6670, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Golden_Mountains_of_Altai"},
+			{name: "Western Caucasus", lat: 43.6700, lon: 40.1000, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Western_Caucasus"},
+			{name: "Natural System of Wrangel Island Reserve", lat: 71.2500, lon: -179.5000, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Wrangel_Island"},
+			{name: "Volcanoes of Kamchatka", lat: 56.0302, lon: 160.6430, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Volcanoes_of_Kamchatka"},
+			{name: "Lake Baikal", lat: 53.5670, lon: 108.1019, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Lake_Baikal"},
+			{name: "Virgin Komi Forests", lat: 64.2964, lon: 60.8333, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Virgin_Komi_Forests"},
+			{name: "Curonian Spit", lat: 55.2783, lon: 20.9714, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Curonian_Spit"},
+			{name: "Ubsunur Hollow", lat: 50.0000, lon: 93.0000, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Ubsunur_Hollow"},
+			{name: "Putorana Plateau", lat: 69.0000, lon: 92.3333, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Putorana_Plateau"},
+			{name: "Lena Pillars", lat: 61.1038, lon: 127.4306, country: "Russia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Lena_Pillars"},
+			{name: "The Great Spa Towns of Europe", lat: 59.9343, lon: 30.3351, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+			{name: "Novodevichy Convent, Moscow", lat: 55.7264, lon: 37.5547, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Novodevichy_Convent"},
+			{name: "Kizhi Pogost", lat: 62.0667, lon: 35.2333, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Kizhi_Pogost"},
+			{name: "Struve Geodetic Arc", lat: 61.8167, lon: 34.3333, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+			{name: "St. Basil’s Cathedral and Kremlin, Astrakhan", lat: 46.3497, lon: 48.0306, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Astrakhan_Kremlin"},
+			{name: "Bolgar Historical and Archaeological Complex", lat: 54.9747, lon: 49.0303, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bolgar_Historical_and_Archaeological_Complex"},
+			{name: "Assumption Cathedral and Monastery of the town-island of Sviyazhsk", lat: 55.7750, lon: 48.6678, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Assumption_Cathedral_and_Monastery_of_Sviyazhsk"},
+			{name: "Churches of the Pskov School of Architecture", lat: 57.8167, lon: 28.3300, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Churches_of_the_Pskov_School_of_Architecture"},
+			{name: "Historic Centre of Yaroslavl", lat: 57.6261, lon: 39.8845, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Yaroslavl"},
+			{name: "Trans-Siberian Railway", lat: 55.7504, lon: 37.6174, country: "Russia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Trans-Siberian_Railway"},
+
+
+			// San Marino (1 site)
+			{name: "San Marino Historic Centre and Mount Titano", lat: 43.9333, lon: 12.4500, country: "San Marino", type: "cultural", wiki: "https://en.wikipedia.org/wiki/San_Marino_Historic_Centre_and_Mount_Titano"},
+
+			// Serbia (5 sites)
+			{name: "Stari Ras and Sopoćani", lat: 43.1286, lon: 20.4156, country: "Serbia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Stari_Ras"},
+			{name: "Studenica Monastery", lat: 43.4692, lon: 20.5331, country: "Serbia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Studenica_Monastery"},
+			{name: "Mediæval Monuments in Kosovo", lat: 42.6583, lon: 20.2767, country: "Serbia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Medieval_Monuments_in_Kosovo"},
+			{name: "Gamzigrad-Romuliana, Palace of Galerius", lat: 43.8978, lon: 22.1917, country: "Serbia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Gamzigrad"},
+			{name: "Stećci Medieval Tombstone Graveyards", lat: 43.8231, lon: 19.8531, country: "Serbia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ste%C4%87ci_Medieval_Tombstone_Graveyards"},
+
+			// Slovakia (8 sites)
+			{name: "Vlkolínec", lat: 49.0400, lon: 19.2792, country: "Slovakia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Vlkol%C3%ADnec"},
+			{name: "Levoča, Spišský Hrad and the Associated Cultural Monuments", lat: 49.0000, lon: 20.7500, country: "Slovakia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Levo%C4%8Da,_Spi%C5%A1sk%C3%BD_Hrad_and_the_Associated_Cultural_Monuments"},
+			{name: "Banská Štiavnica", lat: 48.4581, lon: 18.8917, country: "Slovakia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bansk%C3%A1_%C5%A0tiavnica"},
+			{name: "Caves of Aggtelek Karst and Slovak Karst", lat: 48.4672, lon: 20.5186, country: "Slovakia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Caves_of_Aggtelek_Karst_and_Slovak_Karst"},
+			{name: "Wooden Churches of the Slovak part of the Carpathian Mountain Area", lat: 49.3000, lon: 21.6833, country: "Slovakia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Wooden_churches_of_the_Slovak_Carpathians"},
+			{name: "Primeval Beech Forests of the Carpathians and Other Regions of Europe", lat: 48.9333, lon: 22.3333, country: "Slovakia", type: "natural", wiki: "https://en.wikipedia.org/wiki/Primeval_Beech_Forests_of_the_Carpathians_and_Other_Regions_of_Europe"},
+			{name: "Historic Town of Bardejov", lat: 49.2927, lon: 21.2753, country: "Slovakia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bardejov"},
+			{name: "Limes Romanus (Frontiers of the Roman Empire)", lat: 47.8500, lon: 18.9833, country: "Slovakia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Limes_(Roman_Empire)"},
+
+			// Slovenia (4 sites)
+			{name: "Škocjan Caves", lat: 45.6642, lon: 13.9889, country: "Slovenia", type: "natural", wiki: "https://en.wikipedia.org/wiki/%C5%A0kocjan_Caves"},
+			{name: "Heritage of Mercury. Almadén and Idrija", lat: 46.0000, lon: 14.0300, country: "Slovenia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Heritage_of_Mercury._Almad%C3%A9n_and_Idrija"},
+			{name: "Prehistoric Pile dwellings around the Alps", lat: 46.3167, lon: 14.7333, country: "Slovenia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_pile_dwellings_around_the_Alps"},
+			{name: "The works of Jože Plečnik in Ljubljana – Human Centred Urban Design", lat: 46.0511, lon: 14.5050, country: "Slovenia", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Jo%C5%BEe_Ple%C4%8Dnik"},
+
+			// Spain (49 sites)
+
+			{name: "Alcalá de Henares, University and Historic Precinct", lat: 40.4819, lon: -3.3644, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/University_of_Alcal%C3%A1"},
+			{name: "Alhambra, Generalife and Albayzín, Granada", lat: 37.1760, lon: -3.5881, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Alhambra"},
+			{name: "Almadén Mining Park", lat: 38.7750, lon: -4.8389, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Almad%C3%A9n"},
+			{name: "Altamira Cave", lat: 43.3775, lon: -4.1192, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Cave_of_Altamira"},
+			{name: "Ancient and Primeval Beech Forests of the Carpathians and Other Regions of Europe", lat: 42.5000, lon: -3.0000, country: "Spain", type: "natural", wiki: "https://en.wikipedia.org/wiki/Primeval_Beech_Forests_of_the_Carpathians_and_Other_Regions_of_Europe"},
+			{name: "Antequera Dolmens Site", lat: 37.0133, lon: -4.5619, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Antequera_Dolmens_Site"},
+			{name: "Aranjuez Cultural Landscape", lat: 40.0356, lon: -3.6039, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Aranjuez_Cultural_Landscape"},
+			{name: "Archaeological Ensemble of Mérida", lat: 38.9161, lon: -6.3452, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/M%C3%A9rida,_Spain"},
+			{name: "Atapuerca Archaeological Site", lat: 42.3511, lon: -3.5072, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Atapuerca"},
+			{name: "Burgos Cathedral", lat: 42.3386, lon: -3.7044, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Burgos_Cathedral"},
+			{name: "Cathedral, Alcázar, and Archivo de Indias in Seville", lat: 37.3861, lon: -5.9922, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Seville_Cathedral"},
+			{name: "Cave of Altamira and Paleolithic Cave Art of Northern Spain", lat: 43.3775, lon: -4.1192, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Cave_of_Altamira"},
+			{name: "Doñana National Park", lat: 37.0333, lon: -6.4333, country: "Spain", type: "natural", wiki: "https://en.wikipedia.org/wiki/Do%C3%B1ana_National_Park"},
+			{name: "Garajonay National Park", lat: 28.1167, lon: -17.2333, country: "Spain", type: "natural", wiki: "https://en.wikipedia.org/wiki/Garajonay_National_Park"},
+			{name: "Historic Centre of Cordoba", lat: 37.8790, lon: -4.7794, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Centre_of_C%C3%B3rdoba"},
+			{name: "Historic Walled Town of Cuenca", lat: 40.0717, lon: -2.1366, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Cuenca,_Spain"},
+			{name: "Ibiza, Biodiversity and Culture", lat: 38.9067, lon: 1.4206, country: "Spain", type: "mixed", wiki: "https://en.wikipedia.org/wiki/Ibiza"},
+			{name: "La Laguna Cathedral", lat: 28.4890, lon: -16.3176, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/La_Laguna_Cathedral"},
+			{name: "La Lonja de la Seda de Valencia", lat: 39.4738, lon: -0.3787, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/La_Lonja_de_la_Seda"},
+			{name: "Las Médulas", lat: 42.4606, lon: -6.7669, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Las_M%C3%A9dulas"},
+			{name: "Medina Azahara", lat: 37.8869, lon: -4.8351, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Medina_Azahara"},
+			{name: "Monastery and Site of the Escurial, Madrid", lat: 40.5894, lon: -4.1476, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/El_Escorial"},
+			{name: "Monastery of Poblet", lat: 41.3775, lon: 1.0594, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Poblet_Monastery"},
+			{name: "Monastery of San Millán de la Cogolla", lat: 42.3278, lon: -2.8567, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Monastery_of_San_Mill%C3%A1n_de_la_Cogolla"},
+			{name: "Monastery of Santa María de Guadalupe", lat: 39.4503, lon: -5.3261, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Royal_Monastery_of_Santa_Mar%C3%ADa_de_Guadalupe"},
+			{name: "Mountain of Montserrat", lat: 41.5941, lon: 1.8309, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Montserrat"},
+			{name: "Mudejar Architecture of Aragon", lat: 41.6461, lon: -0.8805, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mudejar_Architecture_of_Aragon"},
+			{name: "Old City of Salamanca", lat: 40.9667, lon: -5.6667, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_City_of_Salamanca"},
+			{name: "Old Town of Ávila with its Extra-Muros Churches", lat: 40.6565, lon: -4.7003, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/%C3%81vila,_Spain"},
+			{name: "Old Town of Segovia and its Aqueduct", lat: 40.9481, lon: -4.1184, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_Town_of_Segovia_and_its_Aqueduct"},
+			{name: "Palmeral of Elche", lat: 38.2667, lon: -0.7000, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palmeral_of_Elche"},
+			{name: "Prehistoric Rock Art of the Mediterranean Basin on the Iberian Peninsula", lat: 38.7190, lon: -0.2443, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_Rock_Art_of_the_Mediterranean_Basin_on_the_Iberian_Peninsula"},
+			{name: "Prehistoric Rock-Art Sites in the Côa Valley and Siega Verde", lat: 41.0833, lon: -6.6500, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_Rock_Art_Sites_in_the_C%C3%B4a_Valley_and_Siega_Verde"},
+			{name: "Risco Caído and the Sacred Mountains of Gran Canaria", lat: 28.0544, lon: -15.5762, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Risco_Ca%C3%ADdo"},
+			{name: "Rock Art of the Iberian Mediterranean Basin", lat: 40.6403, lon: -0.1129, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Rock_Art_of_the_Iberian_Mediterranean_Basin"},
+			{name: "Roman Gold Mines of Las Médulas", lat: 42.4614, lon: -6.7661, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Las_M%C3%A9dulas"},
+			{name: "Roman Walls of Lugo", lat: 43.0124, lon: -7.5578, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Roman_Walls_of_Lugo"},
+			{name: "Routes of Santiago de Compostela", lat: 42.8806, lon: -8.5444, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Way_of_St._James"},
+			{name: "Royal Palace of Aranjuez", lat: 40.0312, lon: -3.6055, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Royal_Palace_of_Aranjuez"},
+			{name: "Sagrada Família", lat: 41.4036, lon: 2.1744, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sagrada_Fam%C3%ADlia"},
+			{name: "San Cristóbal de La Laguna", lat: 28.4824, lon: -16.3167, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/San_Crist%C3%B3bal_de_La_Laguna"},
+			{name: "San Millán Yuso and Suso Monasteries", lat: 42.3308, lon: -2.8561, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/San_Mill%C3%A1n_Yuso_and_Suso_Monasteries"},
+			{name: "Santa María de León Cathedral", lat: 42.5993, lon: -5.5671, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Le%C3%B3n_Cathedral"},
+			{name: "Sierra de Tramuntana", lat: 39.7000, lon: 2.6000, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Sierra_de_Tramuntana"},
+			{name: "Silk Exchange in Valencia", lat: 39.4734, lon: -0.3773, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/La_Lonja_de_la_Seda"},
+			{name: "Teide National Park", lat: 28.2725, lon: -16.6425, country: "Spain", type: "natural", wiki: "https://en.wikipedia.org/wiki/Teide_National_Park"},
+			{name: "The Great Spa Towns of Europe", lat: 42.1833, lon: -0.7000, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+			{name: "Tower of Hercules", lat: 43.3858, lon: -8.4065, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tower_of_Hercules"},
+			{name: "University and Historic Precinct of Alcalá de Henares", lat: 40.4819, lon: -3.3644, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/University_of_Alcal%C3%A1"},
+			{name: "Vizcaya Bridge", lat: 43.3230, lon: -3.0166, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Vizcaya_Bridge"},
+			{name: "Works of Antoni Gaudí", lat: 41.4036, lon: 2.1744, country: "Spain", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Antoni_Gaud%C3%AD"},
+
+			// Sweden (15 sites)
+			{name: "Drottningholm Palace", lat: 59.3211, lon: 17.8860, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Drottningholm_Palace"},
+			{name: "Birka and Hovgården", lat: 59.3361, lon: 17.5467, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Birka"},
+			{name: "Engelsberg Ironworks", lat: 60.0042, lon: 16.0244, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Engelsberg_Ironworks"},
+			{name: "Rock Carvings in Tanum", lat: 58.7383, lon: 11.3203, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tanum_Municipality"},
+			{name: "Skogskyrkogården", lat: 59.2821, lon: 18.0808, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Skogskyrkog%C3%A5rden"},
+			{name: "Hanseatic Town of Visby", lat: 57.6409, lon: 18.2960, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Visby"},
+			{name: "Laponian Area", lat: 67.5000, lon: 17.5000, country: "Sweden", type: "natural", wiki: "https://en.wikipedia.org/wiki/Laponian_area"},
+			{name: "Varberg Radio Station", lat: 57.1058, lon: 12.2372, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Grimeton_Radio_Station"},
+			{name: "Agricultural Landscape of Southern Öland", lat: 56.6167, lon: 16.4167, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Alvar"},
+			{name: "High Coast / Kvarken Archipelago", lat: 63.0000, lon: 21.3000, country: "Sweden", type: "natural", wiki: "https://en.wikipedia.org/wiki/High_Coast"},
+			{name: "Mining Area of the Great Copper Mountain in Falun", lat: 60.6034, lon: 15.6259, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Falun_Mine"},
+			{name: "Decorated Farmhouses of Hälsingland", lat: 61.7361, lon: 16.6786, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Decorated_Farmhouses_of_H%C3%A4lsingland"},
+			{name: "Struve Geodetic Arc", lat: 68.3833, lon: 23.3833, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc"},
+			{name: "Royal Domain of Drottningholm", lat: 59.3211, lon: 17.8860, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Royal_Domain_of_Drottningholm"},
+			{name: "The Naval Port of Karlskrona", lat: 56.1612, lon: 15.5869, country: "Sweden", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Karlskrona_Naval_Port"},
+
+			// Switzerland (12 sites)
+			{name: "Abbey of St Gall", lat: 47.4236, lon: 9.3770, country: "Switzerland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Abbey_of_Saint_Gall"},
+			{name: "Old City of Berne", lat: 46.9481, lon: 7.4474, country: "Switzerland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_City_(Bern)"},
+			{name: "Three Castles, Defensive Wall and Ramparts of the Market-Town of Bellinzona", lat: 46.1931, lon: 9.0222, country: "Switzerland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Three_Castles_of_Bellinzona"},
+			{name: "Swiss Alps Jungfrau-Aletsch", lat: 46.5014, lon: 8.0315, country: "Switzerland", type: "natural", wiki: "https://en.wikipedia.org/wiki/Swiss_Alps_Jungfrau-Aletsch"},
+			{name: "Monte San Giorgio", lat: 45.8917, lon: 8.9647, country: "Switzerland", type: "natural", wiki: "https://en.wikipedia.org/wiki/Monte_San_Giorgio"},
+			{name: "Lavaux, Vineyard Terraces", lat: 46.4942, lon: 6.7141, country: "Switzerland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Lavaux"},
+			{name: "La Chaux-de-Fonds / Le Locle, Watchmaking Town Planning", lat: 47.1026, lon: 6.8306, country: "Switzerland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/La_Chaux-de-Fonds"},
+			{name: "Rhaetian Railway in the Albula / Bernina Landscapes", lat: 46.5325, lon: 9.7877, country: "Switzerland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Rhaetian_Railway_in_the_Albula/Bernina_Landscapes"},
+			{name: "Prehistoric Pile dwellings around the Alps", lat: 47.0000, lon: 9.0000, country: "Switzerland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Prehistoric_pile_dwellings_around_the_Alps"},
+			{name: "Tectonic Arena Sardona", lat: 46.9167, lon: 9.2333, country: "Switzerland", type: "natural", wiki: "https://en.wikipedia.org/wiki/Tectonic_Arena_Sardona"},
+			{name: "The Architectural Work of Le Corbusier, an Outstanding Contribution to the Modern Movement", lat: 47.3817, lon: 8.5476, country: "Switzerland", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Le_Corbusier"},
+			{name: "Ancient and Primeval Beech Forests of the Carpathians and Other Regions of Europe", lat: 46.8667, lon: 8.2333, country: "Switzerland", type: "natural", wiki: "https://en.wikipedia.org/wiki/Primeval_Beech_Forests_of_the_Carpathians_and_Other_Regions_of_Europe"},
+
+			// Turkey (19 sites)
+			{name: "Göreme National Park and the Rock Sites of Cappadocia", lat: 38.6431, lon: 34.8333, country: "Turkey", type: "natural", wiki: "https://en.wikipedia.org/wiki/Cappadocia"},
+			{name: "Great Mosque and Hospital of Divriği", lat: 39.3708, lon: 38.1278, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Divri%C4%9Fi_Great_Mosque_and_Hospital"},
+			{name: "Historic Areas of Istanbul", lat: 41.0086, lon: 28.9802, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Historic_Areas_of_Istanbul"},
+			{name: "Hattusha: the Hittite Capital", lat: 40.0150, lon: 35.7950, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Hattusa"},
+			{name: "Nemrut Dağ", lat: 37.9800, lon: 38.7381, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Mount_Nemrut"},
+			{name: "Hierapolis-Pamukkale", lat: 37.9247, lon: 29.1250, country: "Turkey", type: "mixed", wiki: "https://en.wikipedia.org/wiki/Hierapolis"},
+			{name: "Xanthos-Letoon", lat: 36.3522, lon: 29.3222, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Xanthos"},
+			{name: "City of Safranbolu", lat: 41.2500, lon: 32.6833, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Safranbolu"},
+			{name: "Archaeological Site of Troy", lat: 39.9583, lon: 26.2383, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Troy"},
+			{name: "Selimiye Mosque and its Social Complex", lat: 41.6778, lon: 26.5556, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Selimiye_Mosque"},
+			{name: "Neolithic Site of Çatalhöyük", lat: 37.6667, lon: 32.8333, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/%C3%87atalh%C3%B6y%C3%BCk"},
+			{name: "Bursa and Cumalıkızık: the Birth of the Ottoman Empire", lat: 40.1833, lon: 29.0667, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bursa"},
+			{name: "Pergamon and its Multi-Layered Cultural Landscape", lat: 39.1336, lon: 27.1833, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pergamon"},
+			{name: "Diyarbakır Fortress and Hevsel Gardens Cultural Landscape", lat: 37.9136, lon: 40.2322, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Diyarbak%C4%B1r"},
+			{name: "Ephesus", lat: 37.9497, lon: 27.3677, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ephesus"},
+			{name: "Archaeological Site of Ani", lat: 40.5083, lon: 43.5739, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ani"},
+			{name: "Aphrodisias", lat: 37.7075, lon: 28.7233, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Aphrodisias"},
+			{name: "Göbekli Tepe", lat: 37.2233, lon: 38.9222, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/G%C3%B6bekli_Tepe"},
+			{name: "Arslantepe Mound", lat: 38.3636, lon: 38.3511, country: "Turkey", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Arslantepe"},
+
+			// Ukraine (8 sites)
+			{ "name": "Kyiv: Saint-Sophia Cathedral and Related Monastic Buildings, Kyiv-Pechersk Lavra", "lat": 50.4501, "lon": 30.5234, "country": "Ukraine", "type": "Cultural", "wiki": "https://en.wikipedia.org/wiki/Saint_Sophia_Cathedral,_Kyiv" },
+			{ "name": "L'viv – the Ensemble of the Historic Centre", "lat": 49.8397, "lon": 24.0297, "country": "Ukraine", "type": "Cultural", "wiki": "https://en.wikipedia.org/wiki/Old_Town_(Lviv)" },
+			{ "name": "Struve Geodetic Arc", "lat": 51.1242, "lon": 31.9512, "country": "Ukraine", "type": "Cultural", "wiki": "https://en.wikipedia.org/wiki/Struve_Geodetic_Arc" },
+			{ "name": "Primeval Beech Forests of the Carpathians and Other Regions of Europe", "lat": 48.6235, "lon": 22.4903, "country": "Ukraine", "type": "Natural", "wiki": "https://en.wikipedia.org/wiki/Primeval_Beech_Forests_of_the_Carpathians_and_Other_Regions_of_Europe" },
+			{ "name": "Ancient City of Tauric Chersonese and its Chora", "lat": 44.6087, "lon": 33.5226, "country": "Ukraine", "type": "Cultural", "wiki": "https://en.wikipedia.org/wiki/Chersonesus" },
+			{ "name": "Residence of Bukovinian and Dalmatian Metropolitans", "lat": 48.2915, "lon": 25.9358, "country": "Ukraine", "type": "Cultural", "wiki": "https://en.wikipedia.org/wiki/Residence_of_Bukovinian_and_Dalmatian_Metropolitans" },
+			{ "name": "Wooden Tserkvas of the Carpathian Region in Poland and Ukraine", "lat": 48.8500, "lon": 24.0167, "country": "Ukraine", "type": "Cultural", "wiki": "https://en.wikipedia.org/wiki/Wooden_tserkvas_of_the_Carpathian_region_in_Poland_and_Ukraine" },
+
+
+			// United Kingdom (33 sites)
+			{name: "Belfast City Hall", lat: 54.5964, lon: -5.9300, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Belfast_City_Hall"},
+			{name: "Blaenavon Industrial Landscape", lat: 51.7721, lon: -3.0859, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Blaenavon_Industrial_Landscape"},
+			{name: "Blenheim Palace", lat: 51.8411, lon: -1.3617, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Blenheim_Palace"},
+			{name: "Canterbury Cathedral, St Augustine's Abbey, and St Martin's Church", lat: 51.2787, lon: 1.0819, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Canterbury_Cathedral"},
+			{name: "Castles and Town Walls of King Edward in Gwynedd", lat: 53.1396, lon: -4.2763, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Castles_and_Town_Walls_of_King_Edward_in_Gwynedd"},
+			{name: "City of Bath", lat: 51.3811, lon: -2.3590, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Bath,_Somerset"},
+			{name: "City of Westminster (Westminster Abbey and Westminster Palace)", lat: 51.5002, lon: -0.1262, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palace_of_Westminster"},
+			{name: "Cornwall and West Devon Mining Landscape", lat: 50.5445, lon: -4.1340, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Cornwall_and_West_Devon_Mining_Landscape"},
+			{name: "Derwent Valley Mills", lat: 53.0276, lon: -1.4863, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Derwent_Valley_Mills"},
+			{name: "Dorset and East Devon Coast (Jurassic Coast)", lat: 50.7050, lon: -2.9973, country: "United Kingdom", type: "natural", wiki: "https://en.wikipedia.org/wiki/Jurassic_Coast"},
+			{name: "Durham Castle and Cathedral", lat: 54.7753, lon: -1.5849, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Durham_Castle_and_Cathedral"},
+			{name: "Forth Bridge", lat: 56.0000, lon: -3.3875, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Forth_Bridge"},
+			{name: "Forth Rail Bridge", lat: 56.0000, lon: -3.3875, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Forth_Bridge"},
+			{name: "Frontiers of the Roman Empire (Hadrian's Wall)", lat: 55.0000, lon: -2.3000, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Frontiers_of_the_Roman_Empire"},
+			{name: "Giant's Causeway and Causeway Coast", lat: 55.2408, lon: -6.5116, country: "United Kingdom", type: "natural", wiki: "https://en.wikipedia.org/wiki/Giant%27s_Causeway"},
+			{name: "Heart of Neolithic Orkney", lat: 59.0417, lon: -3.2297, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Heart_of_Neolithic_Orkney"},
+			{name: "Henderson Island", lat: -24.3733, lon: -128.3164, country: "United Kingdom", type: "natural", wiki: "https://en.wikipedia.org/wiki/Henderson_Island_(Pitcairn_Islands)"},
+			{name: "Ironbridge Gorge", lat: 52.6270, lon: -2.4852, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Ironbridge_Gorge"},
+			{name: "Jodrell Bank Observatory", lat: 53.2367, lon: -2.3070, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Jodrell_Bank_Observatory"},
+			{name: "Kew Gardens", lat: 51.4780, lon: -0.2956, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Royal_Botanic_Gardens,_Kew"},
+			{name: "Liverpool – Maritime Mercantile City", lat: 53.4084, lon: -2.9916, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Liverpool_Maritime_Mercantile_City"},
+			{name: "Maritime Greenwich", lat: 51.4826, lon: -0.0077, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Maritime_Greenwich"},
+			{name: "New Lanark", lat: 55.6639, lon: -3.7810, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/New_Lanark"},
+			{name: "Old and New Towns of Edinburgh", lat: 55.9533, lon: -3.1883, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Old_and_New_Town_of_Edinburgh"},
+			{name: "Palace of Westminster and Westminster Abbey including Saint Margaret’s Church", lat: 51.4994, lon: -0.1246, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Palace_of_Westminster"},
+			{name: "Pontcysyllte Aqueduct and Canal", lat: 52.9700, lon: -3.0875, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Pontcysyllte_Aqueduct"},
+			{name: "Royal Botanic Gardens, Kew", lat: 51.4780, lon: -0.2956, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Royal_Botanic_Gardens,_Kew"},
+			{name: "Saltaire", lat: 53.8382, lon: -1.7905, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Saltaire"},
+			{name: "St Kilda", lat: 57.8129, lon: -8.5787, country: "United Kingdom", type: "natural", wiki: "https://en.wikipedia.org/wiki/St_Kilda,_Scotland"},
+			{name: "Stonehenge, Avebury and Associated Sites", lat: 51.1789, lon: -1.8262, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Stonehenge"},
+			{name: "Studley Royal Park including the Ruins of Fountains Abbey", lat: 54.1147, lon: -1.5850, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Fountains_Abbey"},
+			{name: "The  Forth Rail Bridge", lat: 56.0000, lon: -3.3875, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Forth_Bridge"},
+			{name: "The English Lake District", lat: 54.4600, lon: -3.0886, country: "United Kingdom", type: "natural", wiki: "https://en.wikipedia.org/wiki/Lake_District"},
+			{name: "The Great Spa Towns of Europe", lat: 53.2367, lon: -2.3070, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Great_Spa_Towns_of_Europe"},
+			{name: "The Slate Landscape of Northwest Wales", lat: 53.1481, lon: -4.1196, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/The_Slate_Landscape_of_Northwest_Wales"},
+			{name: "Tower of London", lat: 51.5081, lon: -0.0759, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Tower_of_London"},
+			{name: "Westminster Abbey", lat: 51.4993, lon: -0.1273, country: "United Kingdom", type: "cultural", wiki: "https://en.wikipedia.org/wiki/Westminster_Abbey"}
+
+		];
+
+		// Function to get marker color based on site type
+		function getColor(type) {
+			if (type === "cultural") return "red";
+			else if (type === "natural") return "blue";
+			else return "purple"; // mixed
+		}
+
+		// Add circle markers for all UNESCO sites in Europe
+		unescoSites.forEach(function(site) {
+			var marker = L.circleMarker([site.lat, site.lon], {
+				color: getColor(site.type),
+				fillColor: getColor(site.type),
+				fillOpacity: 0.7,
+				radius: 8
+			}).addTo(map);
+			
+			// Add a tooltip for hovering showing the name
+			marker.bindTooltip(site.name, { 
+				permanent: false, 
+				direction: "top", 
+				offset: L.point(0, -10) 
+			});
+
+			// On marker click, open the Wikipedia link in a new tab
+			marker.on('click', function() {
+				window.open(site.wiki, '_blank');
+			});
+		});
+
+	var countryBounds = {
+		"Albania": [[39.6485, 19.2762], [42.6611, 21.0574]],
+		"Andorra": [[42.4285, 1.413], [42.656, 1.786]],
+		"Armenia": [[38.8404, 43.4471], [41.3006, 46.6333]],
+		"Austria": [[46.3723, 9.5308], [49.0393, 17.1621]],
+		"Belgium": [[49.4969, 2.5241], [51.5054, 6.4075]],
+		"Bosnia and Herzegovina": [[42.5553, 15.7287], [45.2763, 19.6182]],
+		"Bulgaria": [[41.2345, 22.357], [44.2156, 28.6114]],
+		"Croatia": [[42.3404, 13.4932], [46.555, 19.4274]],
+		"Cyprus": [[34.633, 32.2724], [35.6861, 34.5754]],
+		"Czech Republic": [[48.551, 12.090], [51.0557, 18.8592]],
+		"Denmark": [[54.4504, 8.094], [57.7308, 12.6905]],
+		"Estonia": [[57.5158, 21.8365], [59.6859, 28.2106]],
+		"Finland": [[59.8085, 20.5569], [70.0922, 31.5874]],
+		"France": [[41.2778, -5.1422], [51.1242, 9.6625]],
+		"Germany": [[47.2701, 5.8663], [55.0581, 15.0419]],
+		"Greece": [[34.8004, 19.3746], [41.7485, 28.2448]],
+		"Hungary": [[45.743, 16.1135], [48.5852, 22.8977]],
+		"Iceland": [[63.3961, -24.3269], [66.5267, -13.4958]],
+		"Ireland": [[51.3866, -10.471], [55.3856, -5.664]],
+		"Italy": [[36.619987, 6.749955], [47.092, 18.5145]],
+		"Latvia": [[55.6747, 20.9701], [58.0856, 28.2411]],
+		"Lithuania": [[53.8965, 20.918], [56.4461, 26.8349]],
+		"Luxembourg": [[49.4416, 5.7344], [50.1827, 6.5286]],
+		"Malta": [[35.8015, 14.1834], [36.0757, 14.5675]],
+		"Moldova": [[45.4679, 26.6189], [48.4919, 30.1609]],
+		"Montenegro": [[41.8504, 18.4334], [43.5588, 20.3522]],
+		"Netherlands": [[50.7504, 3.3584], [53.5104, 7.2275]],
+		"North Macedonia": [[40.8609, 20.4631], [42.3736, 23.0442]],
+		"Norway": [[57.9805, 4.6159], [71.1855, 31.1855]],
+		"Poland": [[49.002, 14.123], [54.8391, 24.1459]],
+		"Portugal": [[36.9613, -9.3929], [42.1543, -6.1891]],
+		"Romania": [[43.652, 20.263], [48.2656, 29.7017]],
+		"Russia": [[41.1854, 19.6388], [81.8587, 180.0]], // Considering European part of Russia
+		"San Marino": [[43.8937, 12.4035], [43.9922, 12.5165]],
+		"Serbia": [[42.2322, 18.8299], [46.1747, 23.0066]],
+		"Slovakia": [[47.7305, 16.8483], [49.6138, 22.5665]],
+		"Slovenia": [[45.4213, 13.3753], [46.8767, 16.5159]],
+		"Spain": [[36.0001, -9.3007], [43.7914, 3.337]],
+		"Sweden": [[55.3362, 11.1157], [69.0597, 24.1773]],
+		"Switzerland": [[45.8179, 5.956], [47.8085, 10.4914]],
+		"Turkey": [[35.8136, 25.5377], [42.1078, 44.7939]],
+		"Ukraine": [[44.3904, 22.1372], [52.3792, 40.2275]],
+		"United Kingdom": [[49.674, -8.6494], [60.847, 1.7689]]
+	};
+
+
+	// Function to center the map on the selected country
+  function centerOnCountry() {
+	var select = document.getElementById("country");
+	var selectedCountry = select.value;
+
+	// If the user selects "default" or no country
+	if (selectedCountry === "default") {
+		map.setView([48, 16], 5); // Default Europe view
+		return;
+	}
+
+	// Filter UNESCO sites to match the selected country
+	var filteredSites = unescoSites.filter(site => site.country === selectedCountry);
+
+	if (filteredSites.length > 0) {
+		// Center on the first UNESCO site of the selected country
+		var lat = filteredSites[0].lat;
+		var lon = filteredSites[0].lon;
+
+		// Set zoom level based on the number of sites in that country
+		var zoomLevel = 5; // Default zoom level
+		if (filteredSites.length > 10) {
+		zoomLevel = 7; // Closer zoom for countries with many sites
+		} else if (filteredSites.length <= 3) {
+		zoomLevel = 8; // Closer zoom for countries with fewer sites
+		}
+
+		// Center the map on the first site's coordinates and set zoom level
+		map.setView([lat, lon], zoomLevel);
+	} else {
+		console.error("No sites found for the selected country.");
+	}
+}
+
+</script>
+
+
+	</script>
+</body>
+</html>
+
